@@ -1,17 +1,7 @@
 {
-  "timestamp": "2026-03-17T23:33:01.868624",
-  "total_scenarios": 5,
-  "successful_scenarios": 5,
-  "success_rate": 100.0,
-  "average_attempts": 1.0,
-  "by_difficulty": {
-    "simple": {
-      "count": 3,
-      "success_rate": 100.0
-    },
-    "intermediate": {
-      "count": 2,
-      "success_rate": 100.0
-    }
-  }
+  "timestamp": "2026-03-18T10:12:23.097306",
+  "total": 20,
+  "successful": 19,
+  "success_rate": 95.0,
+  "average_attempts": 1.25
 }

@@ -1,4 +1,4 @@
-# plan: Create subplots for wide_metrics dataset, 2 metrics per subplot with twinx axes
+# plan: Create three-line plot with shared x-axis and split y-axes for metric_a, metric_b, metric_c
 keys = list_datasets()
 if not keys:
     result = {"summary": "No datasets available.", "output_paths": [], "status": "no_data"}
@@ -7,56 +7,55 @@ else:
     time_col = "date"
     metric_cols = ["metric_a", "metric_b", "metric_c"]
     
+    # Validate required columns exist
     if not all(col in df.columns for col in [time_col] + metric_cols):
         result = {"summary": "Missing required columns.", "output_paths": [], "status": "no_data"}
     else:
-        # Convert time column to datetime if needed
-        df[time_col] = pd.to_datetime(df[time_col], errors='coerce')
-        df = df.dropna(subset=[time_col])
+        # Create figure with primary and two secondary y-axes
+        fig, ax = plt.subplots(figsize=(10, 6))
         
-        # Split metrics into pairs for subplots (2 per subplot max)
-        pairs = [metric_cols[i:i+2] for i in range(0, len(metric_cols), 2)]
+        # Plot first metric on primary y-axis
+        color1 = 'tab:blue'
+        ax.plot(df[time_col], df[metric_cols[0]], color=color1, label=metric_cols[0])
+        ax.set_ylabel(metric_cols[0], color=color1)
+        ax.tick_params(axis='y', labelcolor=color1)
         
-        # Create figure with subplots
-        fig, axs = plt.subplots(len(pairs), 1, sharex=True, figsize=(10, 3*len(pairs)))
-        axes = np.atleast_1d(axs)
+        # Create first secondary y-axis for second metric
+        ax2 = ax.twinx()
+        color2 = 'tab:orange'
+        ax2.spines['right'].set_position(('outward', 60))
+        ax2.plot(df[time_col], df[metric_cols[1]], color=color2, label=metric_cols[1])
+        ax2.set_ylabel(metric_cols[1], color=color2)
+        ax2.tick_params(axis='y', labelcolor=color2)
         
-        for ax, pair in zip(axes, pairs):
-            # Plot first metric on left axis
-            ax.plot(df[time_col], df[pair[0]], color='tab:blue', label=pair[0])
-            ax.set_ylabel(pair[0], color='tab:blue')
-            ax.tick_params(axis='y', labelcolor='tab:blue')
-            
-            lines, labels = ax.get_legend_handles_labels()
-            
-            # Plot second metric on right axis if it exists
-            if len(pair) > 1:
-                ax2 = ax.twinx()
-                ax2.plot(df[time_col], df[pair[1]], color='tab:orange', label=pair[1])
-                ax2.set_ylabel(pair[1], color='tab:orange')
-                ax2.tick_params(axis='y', labelcolor='tab:orange')
-                # Offset the right spine
-                ax2.spines['right'].set_position(('axes', 1.1))
-                
-                line2, label2 = ax2.get_legend_handles_labels()
-                lines += line2
-                labels += label2
-            
-            ax.grid(True, alpha=0.3)
-            ax.legend(lines, labels, loc='upper left', bbox_to_anchor=(0, 1.15))
+        # Create second secondary y-axis for third metric
+        ax3 = ax.twinx()
+        color3 = 'tab:green'
+        ax3.spines['right'].set_position(('outward', 120))
+        ax3.plot(df[time_col], df[metric_cols[2]], color=color3, label=metric_cols[2])
+        ax3.set_ylabel(metric_cols[2], color=color3)
+        ax3.tick_params(axis='y', labelcolor=color3)
         
-        # Set common x-axis label and title
-        axes[-1].set_xlabel('Date')
-        fig.suptitle('Multiple Metrics Over Time')
+        # Set title and x-axis label
+        ax.set_title('Three Metrics Over Time')
+        ax.set_xlabel('Date')
         
-        # Adjust layout to prevent overlapping
+        # Combine legends from all axes
+        lines1, labels1 = ax.get_legend_handles_labels()
+        lines2, labels2 = ax2.get_legend_handles_labels()
+        lines3, labels3 = ax3.get_legend_handles_labels()
+        ax.legend(lines1 + lines2 + lines3, labels1 + labels2 + labels3, 
+                 loc='upper left')
+        
+        # Adjust layout to prevent label overlap
         plt.tight_layout()
         
-        path = save_figure(fig, filename="multiple_metrics.png", 
-                         summary="Multiple metrics plotted with separate y-axes")
+        # Save the figure
+        path = save_figure(fig, filename="three_metrics.png", 
+                         summary="Three metrics plotted over time with separate y-axes")
         
         result = {
-            "summary": f"Generated 1 figure with {len(pairs)} subplots from {keys[0]}.",
+            "summary": f"Generated 1 chart from {keys[0]} showing three metrics.",
             "output_paths": [path],
             "status": "ok"
         }

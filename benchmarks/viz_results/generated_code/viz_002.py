@@ -1,38 +1,32 @@
-# plan: Create a bar chart using the categorical dataset, showing count by category
-
+# plan: Use categorical dataset to create a bar chart showing count by category
 keys = list_datasets()
 if not keys:
     result = {"summary": "No datasets available.", "output_paths": [], "status": "no_data"}
 else:
-    df = get_df(keys[0])
+    df = get_df("categorical") if "categorical" in keys else get_df(keys[0])
     if "category" not in df.columns or "count" not in df.columns:
-        result = {"summary": "Missing required category or count columns.", "output_paths": [], "status": "no_data"}
+        result = {"summary": "Missing required category/count columns.", "output_paths": [], "status": "no_data"}
     else:
-        # Aggregate counts by category if needed
-        plot_df = df.groupby("category")["count"].sum().reset_index()
+        # Aggregate total counts per category
+        agg = df.groupby("category")["count"].sum().sort_values(ascending=True)
         
-        # Sort by count descending for better visualization
-        plot_df = plot_df.sort_values("count", ascending=False)
+        # Create bar chart
+        fig, ax = plt.subplots(figsize=(10, 6))
+        agg.plot(kind="barh", ax=ax)
         
-        # Create the bar chart
-        fig, ax = plt.subplots(figsize=(10, 5))
-        ax.bar(plot_df["category"], plot_df["count"])
+        ax.set_title("Total Count by Category")
+        ax.set_xlabel("Total Count")
+        ax.set_ylabel("Category")
         
-        # Customize the plot
-        ax.set_title("Count by Category")
-        ax.set_xlabel("Category")
-        ax.set_ylabel("Count")
+        # Add value labels on the bars
+        for i, v in enumerate(agg):
+            ax.text(v, i, f" {v:,}", va="center")
         
-        # Rotate x-axis labels if there are many categories
-        if len(plot_df) > 6:
-            plt.xticks(rotation=45, ha='right')
+        path = save_figure(fig, filename="category-counts.png", 
+                         summary="Horizontal bar chart showing total counts per category")
         
-        # Adjust layout to prevent label cutoff
-        plt.tight_layout()
-        
-        path = save_figure(fig, filename="category-counts.png", summary="Bar chart of counts by category")
         result = {
-            "summary": f"Generated 1 bar chart from {keys[0]}",
+            "summary": f"Generated 1 bar chart from {keys[0]} showing counts across {len(agg)} categories.",
             "output_paths": [path],
             "status": "ok"
         }

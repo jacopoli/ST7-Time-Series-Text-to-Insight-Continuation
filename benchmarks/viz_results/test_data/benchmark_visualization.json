@@ -11,7 +11,7 @@
     {
       "id": "viz_002",
       "difficulty": "simple",
-      "question": "Plot the values as a bar chart.",
+      "question": "Plot the number of occurrences of each category as a bar chart.",
       "dataframes": ["categorical"],
       "expected_chart_type": "bar",
       "description": "Bar chart showing counts by category"
@@ -27,7 +27,7 @@
     {
       "id": "viz_004",
       "difficulty": "intermediate",
-      "question": "Plot multiple metrics on the same chart with legend and labels.",
+      "question": "Plot the three metrics on the same chart with legend and labels.",
       "dataframes": ["wide_metrics"],
       "expected_chart_type": "line",
       "description": "Multi-line chart with proper labels and legend"
