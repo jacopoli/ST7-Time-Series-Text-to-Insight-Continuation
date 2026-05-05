@@ -1,0 +1,221 @@
+{
+  "benchmark_name": "PlotGen Visualization Agent - Real Data",
+  "timestamp": "2026-04-02T10:13:44.618587",
+  "datasets_used": [
+    "gateways",
+    "variables_metrics"
+  ],
+  "total_questions": 10,
+  "passed": 0,
+  "failed": 10,
+  "errors": 10,
+  "success_rate": 0.0,
+  "results_by_category": {
+    "Time Series Visualization": {
+      "total": 1,
+      "passed": 0,
+      "failed": 0,
+      "errors": 1
+    },
+    "Multi-Gateway Comparison": {
+      "total": 1,
+      "passed": 0,
+      "failed": 0,
+      "errors": 1
+    },
+    "Spatial Distribution": {
+      "total": 1,
+      "passed": 0,
+      "failed": 0,
+      "errors": 1
+    },
+    "Categorical Distribution": {
+      "total": 1,
+      "passed": 0,
+      "failed": 0,
+      "errors": 1
+    },
+    "Project Statistics": {
+      "total": 1,
+      "passed": 0,
+      "failed": 0,
+      "errors": 1
+    },
+    "Variable Distribution": {
+      "total": 1,
+      "passed": 0,
+      "failed": 0,
+      "errors": 1
+    },
+    "Unit-based Analysis": {
+      "total": 1,
+      "passed": 0,
+      "failed": 0,
+      "errors": 1
+    },
+    "Time Series per Variable": {
+      "total": 1,
+      "passed": 0,
+      "failed": 0,
+      "errors": 1
+    },
+    "Timezone Analysis": {
+      "total": 1,
+      "passed": 0,
+      "failed": 0,
+      "errors": 1
+    },
+    "Advanced: Metric Statistics": {
+      "total": 1,
+      "passed": 0,
+      "failed": 0,
+      "errors": 1
+    }
+  },
+  "results_by_datasource": {
+    "variables_metrics": {
+      "total": 6,
+      "passed": 0
+    },
+    "gateways": {
+      "total": 3,
+      "passed": 0
+    },
+    "projects_sites": {
+      "total": 1,
+      "passed": 0
+    }
+  },
+  "detailed_results": [
+    {
+      "question_id": 1,
+      "category": "Time Series Visualization",
+      "question": "Crée un graphique linéaire montrant l'évolution d'une métrique (value) au fil du temps (timestamp) avec une courbe continue.",
+      "data_source": "variables_metrics",
+      "plot_type": "line",
+      "validation_passed": false,
+      "validation_errors": [],
+      "execution_error": "An error occurred (ResourceNotFoundException) when calling the InvokeModel operation: This model version has reached the end of its life. Please refer to the AWS documentation for more details.",
+      "execution_time": 4.77662992477417,
+      "timestamp": "2026-04-02T10:13:38.258496",
+      "plot_path": null
+    },
+    {
+      "question_id": 2,
+      "category": "Multi-Gateway Comparison",
+      "question": "Affiche des courbes distinctes pour chaque gateway_name sur le même graphique, montrant l'évolution de la valeur des variables au fil du temps.",
+      "data_source": "variables_metrics",
+      "plot_type": "multi_line",
+      "validation_passed": false,
+      "validation_errors": [],
+      "execution_error": "An error occurred (ResourceNotFoundException) when calling the InvokeModel operation: This model version has reached the end of its life. Please refer to the AWS documentation for more details.",
+      "execution_time": 0.18794822692871094,
+      "timestamp": "2026-04-02T10:13:43.036127",
+      "plot_path": null
+    },
+    {
+      "question_id": 3,
+      "category": "Spatial Distribution",
+      "question": "Crée un scatter plot montrant la localisation des gateways en utilisant les coordonnées x et y, avec la couleur indiquant le type de supplément d'énergie (power_supply).",
+      "data_source": "gateways",
+      "plot_type": "scatter",
+      "validation_passed": false,
+      "validation_errors": [],
+      "execution_error": "An error occurred (ResourceNotFoundException) when calling the InvokeModel operation: This model version has reached the end of its life. Please refer to the AWS documentation for more details.",
+      "execution_time": 0.17804670333862305,
+      "timestamp": "2026-04-02T10:13:43.225072",
+      "plot_path": null
+    },
+    {
+      "question_id": 4,
+      "category": "Categorical Distribution",
+      "question": "Génère un diagramme en barres montrant le nombre de gateways par type de protocole de transfert (transfer_protocol).",
+      "data_source": "gateways",
+      "plot_type": "bar",
+      "validation_passed": false,
+      "validation_errors": [],
+      "execution_error": "An error occurred (ResourceNotFoundException) when calling the InvokeModel operation: This model version has reached the end of its life. Please refer to the AWS documentation for more details.",
+      "execution_time": 0.16913914680480957,
+      "timestamp": "2026-04-02T10:13:43.404131",
+      "plot_path": null
+    },
+    {
+      "question_id": 5,
+      "category": "Project Statistics",
+      "question": "Crée un graphique en barres comparant le nombre de sites par projet (project_id), classé par ordre décroissant.",
+      "data_source": "projects_sites",
+      "plot_type": "bar",
+      "validation_passed": false,
+      "validation_errors": [],
+      "execution_error": "Dataset 'projects_sites' not found. Available: ['gateways', 'variables_metrics']",
+      "execution_time": 0.0,
+      "timestamp": "2026-04-02T10:13:43.574275",
+      "plot_path": null
+    },
+    {
+      "question_id": 6,
+      "category": "Variable Distribution",
+      "question": "Génère un histogramme des valeurs (value) de toutes les métriques, avec 30 bins et une couleur verte, pour identifier la distribution générale.",
+      "data_source": "variables_metrics",
+      "plot_type": "histogram",
+      "validation_passed": false,
+      "validation_errors": [],
+      "execution_error": "An error occurred (ResourceNotFoundException) when calling the InvokeModel operation: This model version has reached the end of its life. Please refer to the AWS documentation for more details.",
+      "execution_time": 0.17643356323242188,
+      "timestamp": "2026-04-02T10:13:43.574275",
+      "plot_path": null
+    },
+    {
+      "question_id": 7,
+      "category": "Unit-based Analysis",
+      "question": "Crée un diagramme en secteurs (pie chart) montrant la proportion de chaque unité (unit) utilisée dans les variables collectées.",
+      "data_source": "variables_metrics",
+      "plot_type": "pie",
+      "validation_passed": false,
+      "validation_errors": [],
+      "execution_error": "An error occurred (ResourceNotFoundException) when calling the InvokeModel operation: This model version has reached the end of its life. Please refer to the AWS documentation for more details.",
+      "execution_time": 0.1729271411895752,
+      "timestamp": "2026-04-02T10:13:43.751701",
+      "plot_path": null
+    },
+    {
+      "question_id": 8,
+      "category": "Time Series per Variable",
+      "question": "Affiche des sous-graphiques (subplots 2x2) montrant les 4 variables les plus fréquentes, chacune avec sa propre courbe temporelle.",
+      "data_source": "variables_metrics",
+      "plot_type": "subplot",
+      "validation_passed": false,
+      "validation_errors": [],
+      "execution_error": "An error occurred (ResourceNotFoundException) when calling the InvokeModel operation: This model version has reached the end of its life. Please refer to the AWS documentation for more details.",
+      "execution_time": 0.20020151138305664,
+      "timestamp": "2026-04-02T10:13:43.924628",
+      "plot_path": null
+    },
+    {
+      "question_id": 9,
+      "category": "Timezone Analysis",
+      "question": "Génère un graphique en barres montrant le nombre de gateways ou sites par timezone (time_zone), avec les barres triées alphabétiquement.",
+      "data_source": "gateways",
+      "plot_type": "bar",
+      "validation_passed": false,
+      "validation_errors": [],
+      "execution_error": "An error occurred (ResourceNotFoundException) when calling the InvokeModel operation: This model version has reached the end of its life. Please refer to the AWS documentation for more details.",
+      "execution_time": 0.27385616302490234,
+      "timestamp": "2026-04-02T10:13:44.125832",
+      "plot_path": null
+    },
+    {
+      "question_id": 10,
+      "category": "Advanced: Metric Statistics",
+      "question": "Crée un boxplot montrant la distribution des valeurs (value) regroupées par variable_name (maximum 5 variables), pour identifier les outliers et la variabilité.",
+      "data_source": "variables_metrics",
+      "plot_type": "boxplot",
+      "validation_passed": false,
+      "validation_errors": [],
+      "execution_error": "An error occurred (ResourceNotFoundException) when calling the InvokeModel operation: This model version has reached the end of its life. Please refer to the AWS documentation for more details.",
+      "execution_time": 0.20580816268920898,
+      "timestamp": "2026-04-02T10:13:44.401241",
+      "plot_path": null
+    }
+  ]
+}
