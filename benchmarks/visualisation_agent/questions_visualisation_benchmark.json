@@ -1,0 +1,162 @@
+[
+  {
+    "id": 1,
+    "question": "Create a line chart showing the time series trend from simple_ts dataset",
+    "dataset": "simple_ts",
+    "expected_chart_type": "line",
+    "expected_columns": ["ts", "value"],
+    "difficulty": "easy"
+  },
+  {
+    "id": 2,
+    "question": "Plot all sensors from the multi_ts dataset with different colors on the same chart",
+    "dataset": "multi_ts",
+    "expected_chart_type": "multi-line",
+    "expected_columns": ["ts", "metric", "value"],
+    "difficulty": "medium"
+  },
+  {
+    "id": 3,
+    "question": "Create a bar chart showing the count of each category from the categorical dataset",
+    "dataset": "categorical",
+    "expected_chart_type": "bar",
+    "expected_columns": ["category", "count"],
+    "difficulty": "easy"
+  },
+  {
+    "id": 4,
+    "question": "Generate a line plot for each sensor in multi_ts as separate subplots",
+    "dataset": "multi_ts",
+    "expected_chart_type": "subplots",
+    "expected_columns": ["ts", "metric", "value"],
+    "difficulty": "hard"
+  },
+  {
+    "id": 5,
+    "question": "Create a stacked area chart showing the contribution of each sensor over time from multi_ts",
+    "dataset": "multi_ts",
+    "expected_chart_type": "stacked-area",
+    "expected_columns": ["ts", "metric", "value"],
+    "difficulty": "hard"
+  },
+  {
+    "id": 6,
+    "question": "Plot the time series from simple_ts with a rolling average overlay",
+    "dataset": "simple_ts",
+    "expected_chart_type": "line-with-overlay",
+    "expected_columns": ["ts", "value"],
+    "difficulty": "medium"
+  },
+  {
+    "id": 7,
+    "question": "Create a histogram showing the distribution of values from simple_ts",
+    "dataset": "simple_ts",
+    "expected_chart_type": "histogram",
+    "expected_columns": ["value"],
+    "difficulty": "medium"
+  },
+  {
+    "id": 8,
+    "question": "Generate a time series plot from multi_ts with smoothed lines for all sensors",
+    "dataset": "multi_ts",
+    "expected_chart_type": "smoothed-multi-line",
+    "expected_columns": ["ts", "metric", "value"],
+    "difficulty": "medium"
+  },
+  {
+    "id": 9,
+    "question": "Create a bar chart showing categorical data aggregated by date from the categorical dataset",
+    "dataset": "categorical",
+    "expected_chart_type": "grouped-bar",
+    "expected_columns": ["timestamp", "category", "count"],
+    "difficulty": "hard"
+  },
+  {
+    "id": 10,
+    "question": "Plot a heatmap showing the metrics from wide_metrics dataset",
+    "dataset": "wide_metrics",
+    "expected_chart_type": "heatmap",
+    "expected_columns": ["ts", "metric_1", "metric_2", "metric_3"],
+    "difficulty": "hard"
+  },
+  {
+    "id": 11,
+    "question": "Create a line chart from simple_ts with marked anomalies at extreme values",
+    "dataset": "simple_ts",
+    "expected_chart_type": "line-with-markers",
+    "expected_columns": ["ts", "value"],
+    "difficulty": "hard"
+  },
+  {
+    "id": 12,
+    "question": "Generate a multi-panel visualization comparing all metrics from the measurements dataset",
+    "dataset": "measurements",
+    "expected_chart_type": "multi-panel",
+    "expected_columns": ["ts", "metric", "value"],
+    "difficulty": "hard"
+  },
+  {
+    "id": 13,
+    "question": "Create a box plot showing the distribution of each sensor from multi_ts by week",
+    "dataset": "multi_ts",
+    "expected_chart_type": "box-plot",
+    "expected_columns": ["ts", "metric", "value"],
+    "difficulty": "hard"
+  },
+  {
+    "id": 14,
+    "question": "Plot the time series from simple_ts with confidence bands around the mean",
+    "dataset": "simple_ts",
+    "expected_chart_type": "line-with-bands",
+    "expected_columns": ["ts", "value"],
+    "difficulty": "hard"
+  },
+  {
+    "id": 15,
+    "question": "Create a scatter plot showing the relationship between two metrics from wide_metrics",
+    "dataset": "wide_metrics",
+    "expected_chart_type": "scatter",
+    "expected_columns": ["metric_1", "metric_2"],
+    "difficulty": "medium"
+  },
+  {
+    "id": 16,
+    "question": "Generate a time series plot from multi_site showing data from different sites as separate lines",
+    "dataset": "multi_site",
+    "expected_chart_type": "multi-line",
+    "expected_columns": ["ts", "site", "value"],
+    "difficulty": "medium"
+  },
+  {
+    "id": 17,
+    "question": "Create a visualization handling NaN values from with_nan dataset with interpolation",
+    "dataset": "with_nan",
+    "expected_chart_type": "line",
+    "expected_columns": ["ts", "value"],
+    "difficulty": "hard"
+  },
+  {
+    "id": 18,
+    "question": "Plot statistical measures from statistics dataset as a bar chart comparing different metrics",
+    "dataset": "statistics",
+    "expected_chart_type": "grouped-bar",
+    "expected_columns": ["metric", "mean", "std", "min", "max"],
+    "difficulty": "medium"
+  },
+  {
+    "id": 19,
+    "question": "Create a comparative time series plot between simple_ts and the mean of multi_ts on the same axes",
+    "dataset": "simple_ts,multi_ts",
+    "expected_chart_type": "multi-dataset-comparison",
+    "expected_columns": ["ts", "value", "metric"],
+    "difficulty": "hard"
+  },
+  {
+    "id": 20,
+    "question": "Generate a comprehensive dashboard with 4 different visualizations from available datasets",
+    "dataset": "simple_ts,multi_ts,categorical,wide_metrics",
+    "expected_chart_type": "dashboard",
+    "expected_columns": ["ts", "value", "metric", "category", "count"],
+    "difficulty": "hard"
+  }
+]
