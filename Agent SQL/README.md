@@ -1,0 +1,105 @@
+# Socotec
+
+# Advanced Multi-Agent Text-to-SQL Framework
+
+An enterprise-grade, highly adaptive Multi-Agent system designed to turn natural language questions into ultra-accurate PostgreSQL queries. Equipped with automatic schema linking, parallel path generation, multi-candidate execution-fingerprint voting, self-correcting fallback loops, and dynamic column exploration.
+
+---
+
+## 🛠️ Architecture Overview
+
+The pipeline leverages specialized autonomous agents working in orchestration to achieve high execution accuracy (Execution Match), preventing hallucinations and broken references.
+
+```bash
+              ┌──────────────────────────────┐
+              │   Natural Language Question  │
+              └──────────────┬───────────────┘
+                             │
+              ┌──────────────▼───────────────┐
+              │       Snapshot Manager       │  <-- Dynamically compresses &
+              │  (Adaptive Schema Linking)   │      links relational schema
+              └──────────────┬───────────────┘
+                             │
+              ┌──────────────▼───────────────┐
+              │      SQL Generator Agent     │  <-- Spawns 'k' concurrent paths
+              │ (Multi-Candidate & Feedback) │      with dynamic self-repair loops
+              └──────────────┬───────────────┘
+                             │ [Executes & Fetches Result Dfs]
+              ┌──────────────▼───────────────┐
+              │       SQL Voter Agent        │  <-- Groups results via MD5 data
+              │  (Fingerprint Voting Engine) │      fingerprints to choose top choice
+              └──────────────┬───────────────┘
+                             │
+                ┌────────────┴────────────┐
+        [High Confidence]                  [Low Confidence / Tie]
+                │                                 │
+                │                         ┌───────▼──────────────┐
+                │                         │  SQL Explorer Agent  │ <-- Resolves deep keys
+                │                         │ (Iterative Probe)    │     (JSONB/Complex types)
+                │                         └───────┬──────────────┘
+                │                                 │
+                └────────────────┬────────────────┘
+                                 │
+                  ┌──────────────▼──────────────┐
+                  │ Output Verified SQL & Data  │
+                  └─────────────────────────────┘
+ ```
+
+### Core Agents & Components:
+* **Snapshot Manager (`snapshot_manager.py`)**: Assesses database scale. For small DBs (e.g., our 3-table Spider playground), it automatically extracts the full schema profile to ensure complete JOIN paths. For massive schemas, it filters down contextual tokens via LLM heuristics.
+* **SQL Generator Agent (`agent_generator.py`)**: Triggers multi-threaded worker pipelines via a concurrent pool to output $k$ candidate implementations. Includes an adaptive `_self_correct_loop` tracking execution exceptions to re-prompt code iterations natively.
+* **SQL Voter Agent (`agent_voter.py`)**: Runs consensus logic against dataset responses. To protect server buffers from memory spikes, it computes a deterministic 32-character MD5 hash representing response matrices, column types, and data distribution boundaries.
+* **SQL Explorer Agent (`agent_explorer.py`)**: Acts as a runtime diagnostic rollback router. When confidence is low or voting paths tie, it deploys non-destructive query probes (`LIMIT 5`) to inspect unknown schemas or complex layout parameters (like `JSONB` structures) dynamically.
+
+---
+
+## 📂 Codebase Directory
+
+```bash
+├── New/                        # Cleaned relational dataset storage (generated via create_newfile.py)
+├── Origin/                     # Unstructured raw source data workspace
+├── Database_1_old/                   # A more complexe database configuration
+│   ├── create_newfile.py             # Ingestion parsing helper to clean datasets and purge NULL values
+│   ├── import_data.py               # Import all the data
+│   ├── import_data_30.py            # High-speed data streamer capping database testing bounds safely
+│   ├── new_benchmark_sql.json        # benchmark
+│   └── setup_db.py                   # Structural PostgreSQL schema initializer (tables & strategic indexes)
+├── Results/
+│   ├── AWS_Benchmark_Report_Lenient.csv    # Result of benchmark_aws.py for the Database_1_old (more complexe structure and benchmark)
+│   ├── AWS_Benchmark_Report_merged.csv    # Result for benchmark_aws_judge.py
+│   ├── AWS_Benchmark_Report_merged_llama.csv    # Result for benchmark_aws_llama.py    
+├── Test/
+│   ├── run.py                      # Interactive ad-hoc query entrypoint backed by Local Ollama
+│   ├── run_AWS.py                  # Interactive ad-hoc query entrypoint backed by AWS Bedrock Claude
+├── .env                              # Environmentconfiguration file (see generated method in README file)
+├── agent_explorer.py           # Deep exploration layer resolving low-confidence patterns
+├── agent_generator.py          # Parallel worker generating multi-threaded code paths
+├── agent_voter.py              # MD5 execution-fingerprint consensus engine
+├── benchmark_aws.py            # Complete evaluation pipeline using AWS Claude 4.5 Sonnet
+├── benchmark_aws_judge.py      # Add LLM as a judge (use AWS Claude 4.5 Sonnet)
+├── benchmark_aws_llama.py      # Add LLM as a judge (use local llama3.1 via Ollama)
+├── chat_bedrock.py             # Client wrapper handling cloud requests via AWS Bedrock Endpoints
+├── chat_local.py               # Local server routing via OpenAI API proxy specs (Ollama)
+├── import_data_merged.py       # Import raw source data to Postgres directly by one python file
+├── snapshot_manager.py         # Handles automated context layout compilation and schema linking
+└── sql_engine.py               # Interface processing execution tasks securely using Psycopg2 & Pandas
+
+ ```
+
+## Quick Start
+### Dependency Management:
+```bash
+pip install pandas langchain-aws psycopg2-binary openai python-dotenv
+```
+
+### Setting Up Environment Secrets: 
+
+Create a standard configuration .env file within the base repository directory:
+```bash
+DB_HOST=localhost
+DB_PORT=5432
+DB_USER=your_username
+DB_PASS=your_password
+DB_NAME_DEFAULT=postgres
+DB_NAME_NEW=my_project_db
+```
