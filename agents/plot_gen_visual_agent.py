@@ -18,6 +18,10 @@ from contextlib import redirect_stdout
 from utils.general_helpers import llm_from
 from utils.token_counter import wrap_llm_with_token_counter
 
+
+#NOTES: 
+#Penser à adapter les agents en fonction de leur version (LLM pur vs VLM multimodal) et à commenter les appels aux critiques que tu veux bypass.
+
 # --- 1. CHARGEMENT DES PROMPTS ET UTILITAIRES ---
 PROMPTS_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "prompts", "plot_gen_visualisation_prompt.json")
 with open(PROMPTS_PATH, "r", encoding="utf-8") as f:
@@ -171,6 +175,44 @@ def execute_code_node(state: PlotGenState):
         print(f"\n--- 🕵️ CODE QUI A PLANTÉ ---\n{state['code']}\n----------------------------\n")
         return {**state, "error_log": erreur, "image_path": None, "is_valid": False}
 
+# =====================================================================
+# AGENT 5 : NUMERICAL FEEDBACK 
+# =====================================================================
+
+# ---------------------------------------------------------------------
+# VERSION A : NUMERICAL (LLM)
+# ---------------------------------------------------------------------
+def numeric_feedback_node(state: PlotGenState):
+    """Agent 3: Numeric Feedback (Lecture de Code uniquement)"""
+    start_time = time.time()
+    llm = get_llm()
+    
+    if state.get("error_log"): return state 
+
+    system_prompt = PROMPTS["numeric_feedback_node"].format(
+        data_summary=state['data_summary'],
+        instruction=state['instruction'],
+        code=state['code']
+    )
+    
+    # Appel simplifié : on n'envoie plus le bloc "image"
+    msg = llm.invoke([
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": "Analyze the code and provide your XML evaluation."}
+    ])
+    
+    is_valid = (extract_xml_tag(msg.content, "is_valid").lower() == "true")
+    feedback = extract_xml_tag(msg.content, "feedback")
+    
+    elapsed = time.time() - start_time
+    print(f"numeric_feedback_node: {elapsed:.2f}s | Valid: {is_valid}")
+    
+    return {**state, "numeric_feedback": None if is_valid else feedback, "is_valid": is_valid}
+
+
+# ---------------------------------------------------------------------
+# VERSION B : NUMERIC MULTIMODALE (VLM)
+# ---------------------------------------------------------------------
 # def numeric_feedback_node(state: PlotGenState):
 #     """Agent 3: Numeric Feedback (Lecture Code)"""
 #     start_time = time.time()
@@ -206,7 +248,42 @@ def execute_code_node(state: PlotGenState):
     
 #     return {**state, "numeric_feedback": None if is_valid else feedback, "is_valid": is_valid}
 
+# =====================================================================
+# AGENT 4 : LEXICAL FEEDBACK 
+# =====================================================================
 
+# ---------------------------------------------------------------------
+# VERSION A : LEXICAL (LLM)
+# ---------------------------------------------------------------------
+def lexical_feedback_node(state: PlotGenState):
+    """Agent 4: Lexical Feedback (Lecture de Code uniquement)"""
+    start_time = time.time()
+    llm = get_llm()
+    
+    if state.get("error_log") or state.get("numeric_feedback"): return state
+    
+    system_prompt = PROMPTS["lexical_feedback_node"].format(
+        instruction=state['instruction'],
+        code=state['code']
+    )
+
+    # Appel simplifié : on n'envoie plus le bloc "image"
+    msg = llm.invoke([
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": "Analyze the code and provide your XML evaluation."}
+    ])
+    
+    is_valid = (extract_xml_tag(msg.content, "is_valid").lower() == "true")
+    feedback = extract_xml_tag(msg.content, "feedback")
+    
+    elapsed = time.time() - start_time
+    print(f"lexical_feedback_node: {elapsed:.2f}s | Valid: {is_valid}")
+    
+    return {**state, "lexical_feedback": None if is_valid else feedback, "is_valid": is_valid}
+
+# ---------------------------------------------------------------------
+# VERSION B : LEXICAL MULTIMODALE (VLM)
+# ---------------------------------------------------------------------
 # def lexical_feedback_node(state: PlotGenState):
 #     """Agent 4: Lexical Feedback (Lecture Code)"""
 #     start_time = time.time()
@@ -242,66 +319,12 @@ def execute_code_node(state: PlotGenState):
 #     return {**state, "lexical_feedback": None if is_valid else feedback, "is_valid": is_valid}
 
 
-def numeric_feedback_node(state: PlotGenState):
-    """Agent 3: Numeric Feedback (Lecture de Code uniquement)"""
-    start_time = time.time()
-    llm = get_llm()
-    
-    if state.get("error_log"): return state 
-
-    system_prompt = PROMPTS["numeric_feedback_node"].format(
-        data_summary=state['data_summary'],
-        instruction=state['instruction'],
-        code=state['code']
-    )
-    
-    # Appel simplifié : on n'envoie plus le bloc "image"
-    msg = llm.invoke([
-        {"role": "system", "content": system_prompt},
-        {"role": "user", "content": "Analyze the code and provide your XML evaluation."}
-    ])
-    
-    is_valid = (extract_xml_tag(msg.content, "is_valid").lower() == "true")
-    feedback = extract_xml_tag(msg.content, "feedback")
-    
-    elapsed = time.time() - start_time
-    print(f"numeric_feedback_node: {elapsed:.2f}s | Valid: {is_valid}")
-    
-    return {**state, "numeric_feedback": None if is_valid else feedback, "is_valid": is_valid}
-
-
-def lexical_feedback_node(state: PlotGenState):
-    """Agent 4: Lexical Feedback (Lecture de Code uniquement)"""
-    start_time = time.time()
-    llm = get_llm()
-    
-    if state.get("error_log") or state.get("numeric_feedback"): return state
-    
-    system_prompt = PROMPTS["lexical_feedback_node"].format(
-        instruction=state['instruction'],
-        code=state['code']
-    )
-
-    # Appel simplifié : on n'envoie plus le bloc "image"
-    msg = llm.invoke([
-        {"role": "system", "content": system_prompt},
-        {"role": "user", "content": "Analyze the code and provide your XML evaluation."}
-    ])
-    
-    is_valid = (extract_xml_tag(msg.content, "is_valid").lower() == "true")
-    feedback = extract_xml_tag(msg.content, "feedback")
-    
-    elapsed = time.time() - start_time
-    print(f"lexical_feedback_node: {elapsed:.2f}s | Valid: {is_valid}")
-    
-    return {**state, "lexical_feedback": None if is_valid else feedback, "is_valid": is_valid}
-
 # =====================================================================
 # AGENT 5 : VISUAL FEEDBACK 
 # =====================================================================
 
 # ---------------------------------------------------------------------
-# VERSION A : LECTURE DE CODE (RAPIDE - ACTIF)
+# VERSION A : VISUAL (LLM)
 # ---------------------------------------------------------------------
 def visual_feedback_node(state: PlotGenState):
     """Agent 5: Visual Feedback (Heuristiques basées sur le Code)"""
@@ -330,7 +353,7 @@ def visual_feedback_node(state: PlotGenState):
     return {**state, "visual_feedback": None if is_valid else feedback, "is_valid": is_valid}
 
 # ---------------------------------------------------------------------
-# VERSION B : VISION MULTIMODALE
+# VERSION B : VISUAL MULTIMODALE (VLM)
 # ---------------------------------------------------------------------
 # def visual_feedback_node(state: PlotGenState):
 #     """Agent 5: Visual Feedback (Regarde la vraie image générée)"""
@@ -374,7 +397,7 @@ def build_plotgen_graph():
     workflow.add_node("coder", code_generation_node)
     workflow.add_node("executor", execute_code_node)
     workflow.add_node("numeric_critic", numeric_feedback_node)
-    workflow.add_node("lexical_critic", lexical_feedback_node)
+    workflow.add_node("lexical_critic", lexical_feedback_node) #commenter cette ligne pour bypass la critique lexicale
     workflow.add_node("visual_critic", visual_feedback_node)
 
     # Flux initial
@@ -395,7 +418,7 @@ def build_plotgen_graph():
         if not state.get("is_valid"): 
             return END if state.get("attempts", 0) >= 4 else "coder"
         return "lexical_critic"
-        # return "visual_critic"
+        # return "visual_critic" # on peut aussi faire passer le workflow directement à la critique visuelle pour le bypass
 
     def route_lexical(state: PlotGenState):
         if not state.get("is_valid"):
@@ -408,7 +431,7 @@ def build_plotgen_graph():
         return END
 
     workflow.add_conditional_edges("numeric_critic", route_numeric)
-    workflow.add_conditional_edges("lexical_critic", route_lexical)
+    workflow.add_conditional_edges("lexical_critic", route_lexical) #commenter cette ligne pour bypass la critique lexicale
     workflow.add_conditional_edges("visual_critic", route_visual)
     
     return workflow.compile()

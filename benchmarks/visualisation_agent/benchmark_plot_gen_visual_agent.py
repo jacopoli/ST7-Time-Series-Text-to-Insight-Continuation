@@ -22,7 +22,7 @@ from agents.plot_gen_visual_agent import build_plotgen_graph, PlotGenState
 
 # --- 1. AJOUT DU TRACKER DE TOKENS BEDROCK ---
 class BedrockTokenTracker(BaseCallbackHandler):
-    """Écoute les réponses du LLM pour compter les tokens sur AWS Bedrock."""
+    """Compte les tokens sur AWS Bedrock."""
     def __init__(self):
         self.total_tokens = 0
         
@@ -35,7 +35,7 @@ class BedrockTokenTracker(BaseCallbackHandler):
         except Exception:
             pass
 
-
+#schéma attendu pour les tables PostgreSQL (à adapter si la base change)
 EXPECTED_SCHEMA = {
     "projects": [
         ("id", "integer"), ("name", "text"), ("country", "text"),
@@ -187,7 +187,7 @@ with psycopg.connect(DSN) as conn:
                 print(f"Erreur lors de la sauvegarde de l'image : {e}")
                     
         except Exception as e:
-            print(f"\n💥 ERREUR FATALE DANS LANGGRAPH :")
+            print(f"\nERREUR FATALE DANS LANGGRAPH :")
             traceback.print_exc() 
             result["error"] = str(e)
             
@@ -220,9 +220,9 @@ with psycopg.connect(DSN) as conn:
                 if res['success'] and res['valid']:
                     status = "✅ PASS"
                 elif res['success']:
-                    status = "⚠️ INVALIDE (Refus Agent Evaluateur)"
+                    status = "INVALIDE (Refus Agent Evaluateur)"
                 else:
-                    status = "❌ CRASH (Erreur Python)"
+                    status = "CRASH (Erreur Python)"
                     
                 # 5. AFFICHAGE DES TOKENS DANS LA CONSOLE
                 print(f" [{diff}] {res['test_name']}: {status} ({res['execution_time']:.1f}s | {res['tokens']} tokens)")
