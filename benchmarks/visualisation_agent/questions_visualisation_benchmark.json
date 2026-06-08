@@ -1,162 +1,142 @@
 [
   {
-    "id": 1,
-    "question": "Create a line chart showing the time series trend from simple_ts dataset",
-    "dataset": "simple_ts",
-    "expected_chart_type": "line",
-    "expected_columns": ["ts", "value"],
-    "difficulty": "easy"
+    "id": "1",
+    "category": "Theme 1 - Simple Queries: Gateways by transfer protocol",
+    "data_source": "gateways",
+    "plot_type": "bar",
+    "question": "Create a vertical bar chart showing the total number of gateways by transfer_protocol."
   },
   {
-    "id": 2,
-    "question": "Plot all sensors from the multi_ts dataset with different colors on the same chart",
-    "dataset": "multi_ts",
-    "expected_chart_type": "multi-line",
-    "expected_columns": ["ts", "metric", "value"],
-    "difficulty": "medium"
+    "id": "2",
+    "category": "Theme 1 - Simple Queries: Top 5 countries",
+    "data_source": "projects",
+    "plot_type": "barh",
+    "question": "Plot a horizontal bar chart of the top 5 (or less) countries with the most projects."
   },
   {
-    "id": 3,
-    "question": "Create a bar chart showing the count of each category from the categorical dataset",
-    "dataset": "categorical",
-    "expected_chart_type": "bar",
-    "expected_columns": ["category", "count"],
-    "difficulty": "easy"
+    "id": "3",
+    "category": "Theme 1 - Simple Queries: Power supply distribution",
+    "data_source": "gateways",
+    "plot_type": "pie",
+    "question": "Show a pie chart of the power_supply types used globally."
   },
   {
-    "id": 4,
-    "question": "Generate a line plot for each sensor in multi_ts as separate subplots",
-    "dataset": "multi_ts",
-    "expected_chart_type": "subplots",
-    "expected_columns": ["ts", "metric", "value"],
-    "difficulty": "hard"
+    "id": "4",
+    "category": "Theme 1 - Simple Queries: Gateway spatial map",
+    "data_source": "gateways",
+    "plot_type": "scatter",
+    "question": "Plot a scatter graph showing the spatial distribution of gateways using their 'x' and 'y' coordinates. Add a visible grid to the plot."
   },
   {
-    "id": 5,
-    "question": "Create a stacked area chart showing the contribution of each sensor over time from multi_ts",
-    "dataset": "multi_ts",
-    "expected_chart_type": "stacked-area",
-    "expected_columns": ["ts", "metric", "value"],
-    "difficulty": "hard"
+    "id": "5",
+    "category": "Theme 2 - Complex Style & Joins: Style Extrême (Bar Custom)",
+    "data_source": "projects",
+    "plot_type": "bar",
+    "question": "Create a bar chart of the number of projects per 'time_zone'. Style constraints: the bars MUST be dark red with a thick black border (linewidth=2). The title MUST have a font size of 18, and you must add a dotted horizontal grid behind the bars."
   },
   {
-    "id": 6,
-    "question": "Plot the time series from simple_ts with a rolling average overlay",
-    "dataset": "simple_ts",
-    "expected_chart_type": "line-with-overlay",
-    "expected_columns": ["ts", "value"],
-    "difficulty": "medium"
+    "id": "6",
+    "category": "Theme 2 - Complex Style & Joins: Style Extrême (Area Line Custom)",
+    "data_source": "gateways",
+    "plot_type": "line",
+    "question": "Show the count of gateways installed per 'installation_date'. Style constraints: the line MUST be thick (linewidth=3), dashed, and dark blue."
   },
   {
-    "id": 7,
-    "question": "Create a histogram showing the distribution of values from simple_ts",
-    "dataset": "simple_ts",
-    "expected_chart_type": "histogram",
-    "expected_columns": ["value"],
-    "difficulty": "medium"
+    "id": "7",
+    "category": "Theme 2 - Complex Style & Joins: Style Extrême (Pie Custom)",
+    "data_source": "configs",
+    "plot_type": "pie",
+    "question": "Create a pie chart showing the proportion of configs by 'ftp_user'. Style constraints: explode the largest slice (pull it out slightly), add a shadow effect, display the percentages in bold white text, and rotate the start angle to 90 degrees."
   },
   {
-    "id": 8,
-    "question": "Generate a time series plot from multi_ts with smoothed lines for all sensors",
-    "dataset": "multi_ts",
-    "expected_chart_type": "smoothed-multi-line",
-    "expected_columns": ["ts", "metric", "value"],
-    "difficulty": "medium"
+    "id": "8",
+    "category": "Theme 2 - Complex Style & Joins: Jointure Complexe (Projet -> Site)",
+    "data_source": "projects, sites",
+    "plot_type": "barh",
+    "question": "Create a horizontal bar chart showing the total number of sites grouped by the project 'client_company_name'. You must perform a join between the projects and sites tables."
   },
   {
-    "id": 9,
-    "question": "Create a bar chart showing categorical data aggregated by date from the categorical dataset",
-    "dataset": "categorical",
-    "expected_chart_type": "grouped-bar",
-    "expected_columns": ["timestamp", "category", "count"],
-    "difficulty": "hard"
+    "id": "9",
+    "category": "Theme 2 - Complex Style & Joins: Jointure Complexe (Gateway -> Config)",
+    "data_source": "gateways, configs",
+    "plot_type": "bar",
+    "question": "Which gateway providers have the most configs? Show a bar chart counting the number of configurations grouped by the gateway 'provider' column. You must join the gateways and configs tables."
   },
   {
-    "id": 10,
-    "question": "Plot a heatmap showing the metrics from wide_metrics dataset",
-    "dataset": "wide_metrics",
-    "expected_chart_type": "heatmap",
-    "expected_columns": ["ts", "metric_1", "metric_2", "metric_3"],
-    "difficulty": "hard"
+    "id": "10",
+    "category": "Theme 2 - Complex Style & Joins: Jointure Complexe (Site -> Gateway -> Config)",
+    "data_source": "sites, gateways, configs",
+    "plot_type": "scatter",
+    "question": "Plot a scatter graph showing the relationship between site 'extent' and the number of configurations. You must join sites, gateways, and configs to count the configs per site extent."
   },
   {
-    "id": 11,
-    "question": "Create a line chart from simple_ts with marked anomalies at extreme values",
-    "dataset": "simple_ts",
-    "expected_chart_type": "line-with-markers",
-    "expected_columns": ["ts", "value"],
-    "difficulty": "hard"
+    "id": "11",
+    "category": "Theme 2 - ",
+    "data_source": "variables_metrics_raw_data",
+    "plot_type": "histogram",
+    "question": "Show a time series line chart of the 'value' ordered by 'timestamp', Style constraints: the line MUST be thick (linewidth=3), dashed, and dark blue."
   },
   {
-    "id": 12,
-    "question": "Generate a multi-panel visualization comparing all metrics from the measurements dataset",
-    "dataset": "measurements",
-    "expected_chart_type": "multi-panel",
-    "expected_columns": ["ts", "metric", "value"],
-    "difficulty": "hard"
+    "id": "12",
+    "category": "Theme 3 - Data Science Insights: Average per metric with Std Dev",
+    "data_source": "variables_metrics_raw_data",
+    "plot_type": "bar",
+    "question": "Plot the average 'value' per 'metric' type. You MUST include error bars on the chart representing the standard deviation for each metric."
   },
   {
-    "id": 13,
-    "question": "Create a box plot showing the distribution of each sensor from multi_ts by week",
-    "dataset": "multi_ts",
-    "expected_chart_type": "box-plot",
-    "expected_columns": ["ts", "metric", "value"],
-    "difficulty": "hard"
+    "id": "13",
+    "category": "Theme 3 - Data Science Insights: Sum of values per site",
+    "data_source": "sites, gateways, variables_metrics_raw_data",
+    "plot_type": "bar",
+    "question": "Calculate and plot the total sum of the raw data 'value' grouped by the site name ('name_2')."
   },
   {
-    "id": 14,
-    "question": "Plot the time series from simple_ts with confidence bands around the mean",
-    "dataset": "simple_ts",
-    "expected_chart_type": "line-with-bands",
-    "expected_columns": ["ts", "value"],
-    "difficulty": "hard"
+    "id": "14",
+    "category": "Theme 3 - Data Science Insights: Time series with moving average",
+    "data_source": "variables_metrics_raw_data",
+    "plot_type": "line",
+    "question": "Show a time series line chart of the 'value' ordered by 'timestamp', but apply a rolling mean (moving average) with a window of 3 to smooth the curve."
   },
   {
-    "id": 15,
-    "question": "Create a scatter plot showing the relationship between two metrics from wide_metrics",
-    "dataset": "wide_metrics",
-    "expected_chart_type": "scatter",
-    "expected_columns": ["metric_1", "metric_2"],
-    "difficulty": "medium"
+    "id": "15",
+    "category": "Theme 3 - Data Science Insights: Confidence intervals per unit",
+    "data_source": "variables_metrics_raw_data",
+    "plot_type": "bar",
+    "question": "Calculate the 95% confidence interval for the 'value' column grouped by 'unit'. Display this as a bar chart with error bars showing the confidence intervals."
   },
   {
-    "id": 16,
-    "question": "Generate a time series plot from multi_site showing data from different sites as separate lines",
-    "dataset": "multi_site",
-    "expected_chart_type": "multi-line",
-    "expected_columns": ["ts", "site", "value"],
-    "difficulty": "medium"
+    "id": "16",
+    "category": "Theme 3 - Data Science Insights: Operating rate boxplot",
+    "data_source": "projects, sites",
+    "plot_type": "box",
+    "question": "Plot a boxplot (boîte à moustaches) of the 'operating_rate' of sites grouped by project 'client_company_name' to show the statistical distribution and outliers."
   },
   {
-    "id": 17,
-    "question": "Create a visualization handling NaN values from with_nan dataset with interpolation",
-    "dataset": "with_nan",
-    "expected_chart_type": "line",
-    "expected_columns": ["ts", "value"],
-    "difficulty": "hard"
+    "id": "17",
+    "category": "Theme 3 - Data Science Insights: Value variance per sensor",
+    "data_source": "variables_metrics_raw_data",
+    "plot_type": "scatter",
+    "question": "Calculate the statistical variance of the 'value' column for each 'sensor_id'. Plot these variances as a scatter plot with sensor_id on the X-axis."
   },
   {
-    "id": 18,
-    "question": "Plot statistical measures from statistics dataset as a bar chart comparing different metrics",
-    "dataset": "statistics",
-    "expected_chart_type": "grouped-bar",
-    "expected_columns": ["metric", "mean", "std", "min", "max"],
-    "difficulty": "medium"
+    "id": "18",
+    "category": "Theme 4 - Traps & Resilience: Hallucinated columns (IP/Battery)",
+    "data_source": "gateways",
+    "plot_type": "bar",
+    "question": "Plot a bar chart of the number of gateways grouped by their 'ip_address' and color them by 'battery_level'."
   },
   {
-    "id": 19,
-    "question": "Create a comparative time series plot between simple_ts and the mean of multi_ts on the same axes",
-    "dataset": "simple_ts,multi_ts",
-    "expected_chart_type": "multi-dataset-comparison",
-    "expected_columns": ["ts", "value", "metric"],
-    "difficulty": "hard"
+    "id": "19",
+    "category": "Theme 4 - Traps & Resilience: Off-topic (Smartphones)",
+    "data_source": "None",
+    "plot_type": "pie",
+    "question": "Create a pie chart showing the global market share of Apple vs Samsung smartphones in 2023."
   },
   {
-    "id": 20,
-    "question": "Generate a comprehensive dashboard with 4 different visualizations from available datasets",
-    "dataset": "simple_ts,multi_ts,categorical,wide_metrics",
-    "expected_chart_type": "dashboard",
-    "expected_columns": ["ts", "value", "metric", "category", "count"],
-    "difficulty": "hard"
+    "id": "20",
+    "category": "Theme 4 - Traps & Resilience: Math on text (Average of names)",
+    "data_source": "projects",
+    "plot_type": "bar",
+    "question": "Calculate the mathematical average of the 'name' column in the projects table and plot it grouped by project 'id'."
   }
 ]

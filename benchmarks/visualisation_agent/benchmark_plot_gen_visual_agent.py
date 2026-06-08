@@ -1,423 +1,261 @@
-"""
-Benchmark for plot_gen_visual_agent.py
-
-Tests the plot generation agent with progressively complex visualization requests
-based on the three datasets:
-- gateways_configs_sensors(in).csv
-- projects_sites(in).csv  
-- variables_metrics_raw_data(in).csv
-
-Difficulty levels: EASY -> INTERMEDIATE -> ADVANCED
-"""
-
 import os
+import sys
+from dotenv import load_dotenv
 import json
+import shutil
 import time
+from datetime import datetime
+from typing import Dict, List
 import pandas as pd
 import numpy as np
-from datetime import datetime
-from typing import Dict, List, Tuple
-import sys
+import traceback
 
-# Add parent directory to path for imports
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# --- NOUVEAUX IMPORTS POUR LES TOKENS ---
+from langchain_core.callbacks import BaseCallbackHandler
+
+load_dotenv()
+PROJECT_ROOT = os.getenv("PROJECT_ROOT")
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
 
 from agents.plot_gen_visual_agent import build_plotgen_graph, PlotGenState
 
+# --- 1. AJOUT DU TRACKER DE TOKENS BEDROCK ---
+class BedrockTokenTracker(BaseCallbackHandler):
+    """Écoute les réponses du LLM pour compter les tokens sur AWS Bedrock."""
+    def __init__(self):
+        self.total_tokens = 0
+        
+    def on_llm_end(self, response, **kwargs):
+        try:
+            usage = response.generations[0][0].message.response_metadata.get("usage", {})
+            p_tokens = usage.get("prompt_tokens", usage.get("input_tokens", 0))
+            c_tokens = usage.get("completion_tokens", usage.get("output_tokens", 0))
+            self.total_tokens += (p_tokens + c_tokens)
+        except Exception:
+            pass
+
+
+EXPECTED_SCHEMA = {
+    "projects": [
+        ("id", "integer"), ("name", "text"), ("country", "text"),
+        ("client_company_name", "text"), ("time_zone", "text"), ("city", "text"),
+        ("start_date", "text"), ("description", "text")
+    ],
+    "sites": [
+        ("id_1", "integer"), ("name_2", "text"), ("type", "text"), ("extent", "text"),
+        ("start_date_3", "text"), ("previsional_end", "text"), ("project_id", "integer"),
+        ("created_at", "text"), ("updated_at", "text"), ("deleted", "text"),
+        ("operating_rate", "double precision"), ("main_site", "double precision")
+    ],
+    "gateways": [
+        ("id", "integer"), ("gateway_name", "text"), ("serial_number", "text"),
+        ("transfer_protocol", "text"), ("power_supply", "text"), ("installation_date", "text"),
+        ("operating_team", "text"), ("x", "double precision"), ("y", "double precision"),
+        ("z", "double precision"), ("time_zone", "text"), ("geom", "text"),
+        ("created_at", "text"), ("updated_at", "text"), ("provider", "integer"),
+        ("site_id", "integer")
+    ],
+    "configs": [
+        ("id_1", "integer"), ("file_name", "text"), ("last_treatment", "text"),
+        ("ftp", "text"), ("ftp_ip", "text"), ("ftp_user", "text"),
+        ("ftp_password", "text"), ("ftp_directory", "text"), ("config", "text"),
+        ("gateway_id", "integer"), ("parsing_id", "integer"), ("file_id", "double precision"),
+        ("to_move", "boolean"), ("regex_variables", "text"), ("created_at_1", "text"),
+        ("updated_at_1", "text"), ("active", "boolean"), ("error_message", "text"),
+        ("last_modified", "text"), ("keep_folder", "double precision")
+    ],
+    "variables_metrics_raw_data": [
+        ("gateway_name", "text"), ("variable_name", "text"), ("variable_alias", "text"),
+        ("sensor_id", "integer"), ("value", "double precision"), ("timestamp", "text"),
+        ("variable_id", "integer"), ("unit", "text"), ("metric", "text")
+    ]
+}
+
 
 class PlotGenBenchmark:
-    """Benchmark suite for plot generation agent"""
     
-    def __init__(self, datasets_path: str = "./datasets"):
-        self.datasets_path = datasets_path
+    def __init__(self, datasets_path: str = None, questions_file: str = "questions_visualisation_benchmark.json"):
+        self.datasets_path = datasets_path or os.path.join(PROJECT_ROOT, "datasets")
+        self.questions_path = os.path.join(os.path.dirname(__file__), questions_file)
         self.results = []
-        self.data_summaries = {}
-        self._load_datasets()
-    
-    def _load_datasets(self):
-        """Load and summarize the available datasets"""
-        try:
-            # Load raw measurements
-            self.raw_data = pd.read_csv(
-                os.path.join(self.datasets_path, "variables_metrics_raw_data-1760453175763(in).csv")
-            )
-            self.data_summaries["raw_data"] = f"""
-Time-series Data: {len(self.raw_data)} records
-- Gateways: {self.raw_data['gateway_name'].nunique()}
-- Variables: {self.raw_data['variable_name'].nunique()}
-- Date range: {self.raw_data['timestamp'].min()} to {self.raw_data['timestamp'].max()}
-- Metrics available: {', '.join(self.raw_data['metric'].unique())}
-- Units: {', '.join(self.raw_data['unit'].unique())}
-            """
-            
-            # Load projects/sites
-            self.sites_data = pd.read_csv(
-                os.path.join(self.datasets_path, "projects_sites(in).csv"),
-                sep=";"
-            )
-            self.data_summaries["sites"] = f"""
-Projects & Sites: {len(self.sites_data)} records
-- Sites: {self.sites_data['name_2'].nunique()}
-- Time zones: {self.sites_data['time_zone'].nunique()}
-- Operating rates: {self.sites_data['operating_rate'].min()} to {self.sites_data['operating_rate'].max()}
-            """
-            
-            # Load gateway configs
-            self.gateway_data = pd.read_csv(
-                os.path.join(self.datasets_path, "gateways_configs_sensors(in).csv")
-            )
-            self.data_summaries["gateways"] = f"""
-Gateway Configs: {len(self.gateway_data)} records
-- Gateways: {self.gateway_data.iloc[:, 1].nunique() if len(self.gateway_data.columns) > 1 else 0}
-            """
-            
-        except Exception as e:
-            print(f"Error loading datasets: {e}")
-            self.raw_data = None
-            self.sites_data = None
-            self.gateway_data = None
-    
-    def _create_data_summary(self) -> str:
-        """Create concatenated data summary for the agent"""
-        summary = "Available Datasets:\n"
-        for key, value in self.data_summaries.items():
-            summary += f"\n{key.upper()}:{value}"
-        return summary
-    
-    def _execute_test(self, instruction: str, test_name: str, difficulty: str) -> Dict:
-        """Execute a single plot generation test"""
         
+        self.questions = self._load_json(self.questions_path)
+        self.data_summary = self._load_and_summarize_datasets()
+
+    def _load_json(self, path: str) -> List[Dict]:
+        """Charge le fichier JSON des questions."""
+        try:
+            with open(path, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except Exception as e:
+            print(f"Erreur de chargement des questions : {e}")
+            return []
+
+    def _load_and_summarize_datasets(self) -> str:
+        """Génère le contexte complet de la base PostgreSQL pour le LLM."""
+
+        def summarize_db_table_for_llm(table_name: str, columns_and_types: list) -> str:
+            schema_lines = [f"- `{col_name}` ({col_type})" for col_name, col_type in columns_and_types]
+            schema_markdown = "\n".join(schema_lines)
+
+            load_code = f"""import os
+import psycopg
+import pandas as pd
+
+# Chargement sécurisé depuis l'environnement local
+DSN = os.getenv("POSTGRES_DSN")
+
+with psycopg.connect(DSN) as conn:
+    with conn.cursor() as cur:
+        cur.execute("SELECT * FROM {table_name};")
+        cols = [desc[0] for desc in cur.description]
+        df_{table_name} = pd.DataFrame(cur.fetchall(), columns=cols)"""
+
+            return (
+                f"### DATABASE TABLE: {table_name.upper()}\n"
+                f"**CRITICAL - Exact Python code to load this table into a DataFrame (`df_{table_name}`):**\n"
+                f"```python\n{load_code}\n```\n\n"
+                f"Available Columns & Types:\n{schema_markdown}\n"
+                f"--------------------------------------------------\n"
+            )
+
+        db_context = "VOICI LES TABLES POSTGRESQL DISPONIBLES ET COMMENT LES REQUÊTER :\n\n"
+        
+        try:
+            for table_name, schema_info in EXPECTED_SCHEMA.items():
+                db_context += summarize_db_table_for_llm(table_name, schema_info)
+        except NameError:
+            print("ERREUR : Le dictionnaire EXPECTED_SCHEMA est introuvable. Ajoute-le en haut du fichier.")
+            
+        return db_context
+
+
+    def _execute_test(self, question: Dict) -> Dict:
+        """Exécute l'agent PlotGen pour une question donnée."""
         start_time = time.time()
+        
+        # Initialisation de la structure du résultat (ajout du champ 'tokens')
         result = {
-            "test_name": test_name,
-            "difficulty": difficulty,
-            "instruction": instruction,
+            "test_name": f"Q{question.get('id', '?')}: {question.get('category', 'UNKNOWN')}",
+            "difficulty": question.get("category", "UNKNOWN").split(" - ")[0],
+            "instruction": question.get("question", ""),
             "timestamp": datetime.now().isoformat(),
-            "success": False,
-            "error": None,
-            "execution_time": 0,
-            "image_path": None,
-            "valid": False
+            "success": False, "valid": False, "error": None, 
+            "execution_time": 0, "image_path": None, "attempts": 0, "tokens": 0
         }
+        
+        # 2. INITIALISATION DU TRACKER
+        token_tracker = BedrockTokenTracker()
         
         try:
-            # Build and invoke the plot generation graph
             graph = build_plotgen_graph()
-            data_summary = self._create_data_summary()
-            
             initial_state = PlotGenState(
-                instruction=instruction,
-                data_summary=data_summary,
-                plan=None,
-                code=None,
-                image_path=None,
-                error_log=None,
-                numeric_feedback=None,
-                lexical_feedback=None,
-                visual_feedback=None,
-                is_valid=False,
-                attempts=0
+                instruction=result["instruction"],
+                data_summary=self.data_summary,
+                plan=None, code=None, image_path=None, error_log=None,
+                numeric_feedback=None, lexical_feedback=None, visual_feedback=None,
+                is_valid=False, attempts=0
             )
             
-            # Execute the graph
-            final_state = graph.invoke(initial_state)
+            # 3. INJECTION DU TRACKER DANS L'APPEL LANGGRAPH
+            final_state = graph.invoke(initial_state, config={"callbacks": [token_tracker]})
             
-            result["execution_time"] = time.time() - start_time
-            result["success"] = True
-            result["is_valid"] = final_state.get("is_valid", False)
-            result["image_path"] = final_state.get("image_path")
-            result["attempts"] = final_state.get("attempts", 0)
+            result.update({
+                "success": True,
+                "valid": final_state.get("is_valid", False),
+                "image_path": final_state.get("image_path"),
+                "attempts": final_state.get("attempts", 0),
+                "tokens": token_tracker.total_tokens  # 4. RÉCUPÉRATION DES TOKENS
+            })
+
+            try:
+                images_dir = os.path.join(os.path.dirname(__file__), "plot_gen_results_NoVLM")
+                os.makedirs(images_dir, exist_ok=True)
             
-            # Check for validation errors
-            if final_state.get("error_log"):
-                result["error"] = f"Execution error: {final_state['error_log']}"
-            if final_state.get("numeric_feedback"):
-                result["error"] = f"Numeric validation issue: {final_state['numeric_feedback']}"
-            if final_state.get("lexical_feedback"):
-                result["error"] = f"Lexical validation issue: {final_state['lexical_feedback']}"
-            if final_state.get("visual_feedback"):
-                result["error"] = f"Visual validation issue: {final_state['visual_feedback']}"
+                new_filename = f"plot_gen_Q{question.get('id')}.png"
+                new_img_path = os.path.join(images_dir, new_filename)
+                original_img_path = final_state.get("image_path")
                 
+                if original_img_path and os.path.exists(original_img_path):
+                    shutil.copy2(original_img_path, new_img_path)
+                    print(f"Image sauvegardée sous : {new_img_path}")
+                else:
+                    print("Aucune image n'a été générée par l'agent à sauvegarder.")
+
+            except Exception as e:
+                print(f"Erreur lors de la sauvegarde de l'image : {e}")
+                    
         except Exception as e:
-            result["success"] = False
+            print(f"\n💥 ERREUR FATALE DANS LANGGRAPH :")
+            traceback.print_exc() 
             result["error"] = str(e)
-            result["execution_time"] = time.time() - start_time
-        
+            
+        result["execution_time"] = time.time() - start_time
         return result
-    
-    def create_easy_tests(self) -> List[Tuple[str, str]]:
-        """EASY level tests: Single metric, time-series line plot"""
-        tests = [
-            (
-                "Create a simple line chart showing Acceleration measurements over time",
-                "test_easy_01_acceleration_timeseries"
-            ),
-            (
-                "Plot the Temperature values across all gateways",
-                "test_easy_02_temperature_plot"
-            ),
-            (
-                "Show a bar chart of operating rates for different sites",
-                "test_easy_03_operating_rates"
-            ),
-            (
-                "Display a histogram of variable values distribution",
-                "test_easy_04_distribution"
-            ),
-            (
-                "Create a scatter plot of sensor readings",
-                "test_easy_05_scatter"
-            )
-        ]
-        return tests
-    
-    def create_intermediate_tests(self) -> List[Tuple[str, str]]:
-        """INTERMEDIATE level tests: Multiple metrics, filtering, aggregations"""
-        tests = [
-            (
-                "Create a multi-line chart comparing different sensors' acceleration over time, "
-                "with different colors for each sensor",
-                "test_intermediate_01_multi_sensor"
-            ),
-            (
-                "Plot acceleration measurements by gateway, showing the average and standard deviation bars",
-                "test_intermediate_02_agg_by_gateway"
-            ),
-            (
-                "Create a time-series plot with two Y-axes: one for acceleration and one for temperature, "
-                "if available",
-                "test_intermediate_03_dual_axis"
-            ),
-            (
-                "Generate a heatmap showing the correlation between different metrics across gateways",
-                "test_intermediate_04_correlation_heatmap"
-            ),
-            (
-                "Create subplots: one for each major gateway showing their acceleration trends",
-                "test_intermediate_05_subplots"
-            ),
-            (
-                "Plot the time-series data with a rolling average (7-day window) overlay",
-                "test_intermediate_06_rolling_avg"
-            )
-        ]
-        return tests
-    
-    def create_advanced_tests(self) -> List[Tuple[str, str]]:
-        """ADVANCED level tests: Complex transformations, statistical analysis, multi-dimensional"""
-        tests = [
-            (
-                "Create a comprehensive dashboard with 4 subplots: "
-                "(1) Time-series of raw acceleration, (2) Distribution histogram, "
-                "(3) Box plots by gateway, (4) Daily aggregated statistics",
-                "test_advanced_01_dashboard"
-            ),
-            (
-                "Generate a time-series decomposition plot showing trend, seasonality, and residuals "
-                "for the acceleration data",
-                "test_advanced_02_timeseries_decomposition"
-            ),
-            (
-                "Create an interactive-style plot showing anomalies detected using statistical methods "
-                "(values beyond 2 standard deviations), with highlighted outlier regions",
-                "test_advanced_03_anomaly_detection"
-            ),
-            (
-                "Plot the correlation matrix as a heatmap with hierarchical clustering for all available metrics, "
-                "using annotations for correlation values",
-                "test_advanced_04_clustered_heatmap"
-            ),
-            (
-                "Create a faceted plot comparing the distribution of measurements across different time periods "
-                "(morning/afternoon/evening) and different gateways, with violin plots",
-                "test_advanced_05_faceted_violin"
-            ),
-            (
-                "Generate a comprehensive time-series analysis plot with:"
-                "(1) Raw data line, (2) Exponential moving average, (3) Bollinger bands (±2 std), "
-                "(4) Signal strength indicator (colored background)",
-                "test_advanced_06_technical_analysis"
-            ),
-            (
-                "Create a 3D scatter plot visualization if possible, or an equivalent 2D projection showing "
-                "relationships between acceleration, timestamp, and gateway with size/color encoding",
-                "test_advanced_07_multidimensional"
-            ),
-            (
-                "Generate a statistical summary visualization showing hypothesis test results, "
-                "p-values distribution, and effect sizes between different gateways",
-                "test_advanced_08_statistical_summary"
-            )
-        ]
-        return tests
-    
-    def run_benchmark_suite(self) -> Dict:
-        """Run all benchmarks and collect results"""
-        
-        print("=" * 80)
-        print("PLOT GENERATION AGENT BENCHMARK SUITE")
-        print("=" * 80)
-        print(f"Start time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-        print()
-        
-        all_tests = []
-        
-        # Run EASY tests
-        print("Running EASY tests...")
-        easy_tests = self.create_easy_tests()
-        for instruction, test_name in easy_tests:
-            result = self._execute_test(instruction, test_name, "EASY")
-            self.results.append(result)
-            all_tests.append(result)
-            print(f"  [{result['difficulty']}] {test_name}: {('✓ PASS' if result['success'] else '✗ FAIL')}")
-        
-        print()
-        
-        # Run INTERMEDIATE tests
-        print("Running INTERMEDIATE tests...")
-        intermediate_tests = self.create_intermediate_tests()
-        for instruction, test_name in intermediate_tests:
-            result = self._execute_test(instruction, test_name, "INTERMEDIATE")
-            self.results.append(result)
-            all_tests.append(result)
-            print(f"  [{result['difficulty']}] {test_name}: {('✓ PASS' if result['success'] else '✗ FAIL')}")
-        
-        print()
-        
-        # Run ADVANCED tests
-        print("Running ADVANCED tests...")
-        advanced_tests = self.create_advanced_tests()
-        for instruction, test_name in advanced_tests:
-            result = self._execute_test(instruction, test_name, "ADVANCED")
-            self.results.append(result)
-            all_tests.append(result)
-            print(f"  [{result['difficulty']}] {test_name}: {('✓ PASS' if result['success'] else '✗ FAIL')}")
-        
-        print()
-        print("=" * 80)
-        
-        # Generate summary report
-        summary = self._generate_summary(all_tests)
-        return summary
-    
-    def _generate_summary(self, tests: List[Dict]) -> Dict:
-        """Generate summary statistics"""
-        
-        summary = {
-            "total_tests": len(tests),
-            "timestamp": datetime.now().isoformat(),
-            "by_difficulty": {},
-            "overall_success_rate": 0,
-            "overall_valid_rate": 0,
-            "avg_execution_time": 0,
-            "avg_attempts": 0,
-            "errors": [],
-            "details": tests
-        }
-        
-        if not tests:
-            return summary
-        
-        # Calculate overall metrics
-        successful = sum(1 for t in tests if t["success"])
-        valid = sum(1 for t in tests if t.get("is_valid", False))
-        
-        summary["overall_success_rate"] = (successful / len(tests)) * 100
-        summary["overall_valid_rate"] = (valid / len(tests)) * 100
-        summary["avg_execution_time"] = np.mean([t["execution_time"] for t in tests])
-        summary["avg_attempts"] = np.mean([t.get("attempts", 0) for t in tests])
-        
-        # Collect errors
-        summary["errors"] = [
-            {
-                "test": t["test_name"],
-                "error": t["error"],
-                "difficulty": t["difficulty"]
-            }
-            for t in tests if t["error"]
-        ]
-        
-        # Break down by difficulty
-        for difficulty in ["EASY", "INTERMEDIATE", "ADVANCED"]:
-            difficulty_tests = [t for t in tests if t["difficulty"] == difficulty]
-            if difficulty_tests:
-                successful_diff = sum(1 for t in difficulty_tests if t["success"])
-                valid_diff = sum(1 for t in difficulty_tests if t.get("is_valid", False))
-                summary["by_difficulty"][difficulty] = {
-                    "total": len(difficulty_tests),
-                    "successful": successful_diff,
-                    "valid": valid_diff,
-                    "success_rate": (successful_diff / len(difficulty_tests)) * 100,
-                    "valid_rate": (valid_diff / len(difficulty_tests)) * 100,
-                    "avg_execution_time": np.mean([t["execution_time"] for t in difficulty_tests]),
-                    "avg_attempts": np.mean([t.get("attempts", 0) for t in difficulty_tests])
-                }
-        
-        # Print summary
-        print("BENCHMARK SUMMARY REPORT")
-        print("=" * 80)
-        print(f"Total Tests: {summary['total_tests']}")
-        print(f"Overall Success Rate: {summary['overall_success_rate']:.2f}%")
-        print(f"Overall Valid Rate: {summary['overall_valid_rate']:.2f}%")
-        print(f"Average Execution Time: {summary['avg_execution_time']:.2f}s")
-        print(f"Average Attempts: {summary['avg_attempts']:.2f}")
-        print()
-        
-        for difficulty in ["EASY", "INTERMEDIATE", "ADVANCED"]:
-            if difficulty in summary["by_difficulty"]:
-                stats = summary["by_difficulty"][difficulty]
-                print(f"{difficulty} Level:")
-                print(f"  Tests: {stats['total']} | Success: {stats['success_rate']:.2f}% | Valid: {stats['valid_rate']:.2f}%")
-                print(f"  Avg Time: {stats['avg_execution_time']:.2f}s | Avg Attempts: {stats['avg_attempts']:.2f}")
-                print()
-        
-        if summary["errors"]:
-            print(f"Errors ({len(summary['errors'])}):")
-            for error in summary["errors"][:5]:  # Show first 5 errors
-                print(f"  - [{error['difficulty']}] {error['test']}: {error['error'][:100]}...")
-            print()
-        
-        print("=" * 80)
-        
-        return summary
-    
-    def save_results(self, output_path: str = "./benchmarks/plot_gen_results/"):
-        """Save benchmark results to file"""
-        os.makedirs(output_path, exist_ok=True)
-        
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        results_file = os.path.join(output_path, f"benchmark_report_{timestamp}.json")
-        
-        # Convert numpy types to Python types for JSON serialization
-        serializable_results = []
-        for result in self.results:
-            item = result.copy()
-            for key in item:
-                if isinstance(item[key], (np.floating, np.integer)):
-                    item[key] = float(item[key])
-            serializable_results.append(item)
-        
-        with open(results_file, 'w') as f:
-            json.dump(serializable_results, f, indent=2)
-        
-        print(f"Results saved to: {results_file}")
-        return results_file
 
+    def run(self):
+        """Point d'entrée pour exécuter tous les tests groupés par difficulté."""
+        if not self.questions:
+            print("Aucune question à traiter. Vérifiez le fichier JSON.")
+            return
 
-def main():
-    """Main entry point for benchmark"""
-    
-    # Initialize benchmark
-    benchmark = PlotGenBenchmark(datasets_path="./datasets")
-    
-    # Run all tests
-    summary = benchmark.run_benchmark_suite()
-    
-    # Save results
-    benchmark.save_results()
-    
-    return summary
+        print("=" * 60)
+        print(f"  Lancement du Benchmark PlotGen ({len(self.questions)} questions)")
+        print("=" * 60)
 
+        grouped_questions = {}
+        for q in self.questions:
+            diff = q.get("category", "UNKNOWN").split(" - ")[0]
+            grouped_questions.setdefault(diff, []).append(q)
+
+        for diff in ["Theme 1", "Theme 2", "Theme 3", "Theme 4"]:
+            if diff not in grouped_questions: continue
+            
+            print(f"\n--- {diff} TESTS ({len(grouped_questions[diff])}) ---")
+            for q in grouped_questions[diff]:
+                res = self._execute_test(q)
+                self.results.append(res)
+                
+                if res['success'] and res['valid']:
+                    status = "✅ PASS"
+                elif res['success']:
+                    status = "⚠️ INVALIDE (Refus Agent Evaluateur)"
+                else:
+                    status = "❌ CRASH (Erreur Python)"
+                    
+                # 5. AFFICHAGE DES TOKENS DANS LA CONSOLE
+                print(f" [{diff}] {res['test_name']}: {status} ({res['execution_time']:.1f}s | {res['tokens']} tokens)")
+
+        self._print_and_save_summary()
+
+    def _print_and_save_summary(self):
+        """Affiche le résumé dans la console et sauvegarde un fichier JSON."""
+        total = len(self.results)
+        if total == 0: return
+
+        valid_count = sum(1 for r in self.results if r["valid"])
+        avg_time = np.mean([r["execution_time"] for r in self.results])
+        total_tokens = sum(r["tokens"] for r in self.results)
+        
+        print("\n" + "=" * 60)
+        print(f"RÉSUMÉ GLOBAL : {valid_count}/{total} Valides ({(valid_count/total)*100:.1f}%)")
+        print(f"Temps moyen: {avg_time:.2f}s | Tokens totaux: {total_tokens}")
+        print(f"Graphiques avec Erreurs/Refus: {sum(1 for r in self.results if r['error'])}")
+        print("=" * 60)
+
+        output_dir = os.path.join(os.path.dirname(__file__), "plot_gen_results")
+        os.makedirs(output_dir, exist_ok=True)
+        filename = os.path.join(output_dir, f"report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json")
+        
+        clean_results = [{k: (float(v) if isinstance(v, (np.floating, np.integer)) else v) 
+                         for k, v in r.items()} for r in self.results]
+        
+        with open(filename, 'w', encoding='utf-8') as f:
+            json.dump(clean_results, f, indent=2, ensure_ascii=False)
+            
+        print(f"Rapport détaillé sauvegardé dans : {filename}")
 
 if __name__ == "__main__":
-    main()
+    benchmark = PlotGenBenchmark()
+    benchmark.run()
