@@ -116,12 +116,13 @@ class MockSpiderEnv:
                 # Delegate to your EXISTING sql_utils
                 result_rows = execute_sql_tool(self.conn, sql_query)
                 
-                # Handle persistence if requested
-                if getattr(action, 'is_save', False):
+                # Always persist SELECT results to datastore (regardless of is_save flag)
+                # This ensures downstream agents (e.g., analysis_agent) can access the data
+                if isinstance(result_rows, list) and result_rows and sql_query.strip().upper().startswith("SELECT"):
                     try:
                         df = pd.DataFrame(result_rows)
                         # Use save_path as reference key if provided, otherwise let datastore generate one
-                        ref_key = action.save_path if action.save_path else None
+                        ref_key = getattr(action, 'save_path', None) if getattr(action, 'is_save', False) else None
                         saved_ref = self.datastore.put(
                             df, 
                             description=f"Result of query: {sql_query}",
@@ -132,7 +133,7 @@ class MockSpiderEnv:
                     except Exception as e:
                         observation = f"Success. Rows returned: {len(result_rows)}. Warning: Failed to save to datastore: {str(e)}"
                 else:
-                    observation = f"Success. Rows returned: {result_rows}"
+                    observation = f"Success. Rows returned: {len(result_rows) if isinstance(result_rows, list) else result_rows}"
             except Exception as e:
                 error_message = str(e)
                 observation = f"SQL Error: {error_message}"

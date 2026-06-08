@@ -1,9 +1,16 @@
 from __future__ import annotations
 
 import os
+import sys
 import textwrap
 from pathlib import Path
 from typing import Optional, Sequence, List
+
+# Ensure project root is in path for imports
+CURRENT_FILE = Path(__file__).resolve()
+PROJECT_ROOT = CURRENT_FILE.parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 import chainlit as cl
 from dotenv import load_dotenv
