@@ -89,3 +89,8 @@
 2026-01-19T22:25:42 request=e7990ba69f774f83aebb98e4a4dcfd34 API calls for request: SQL Agent=44 | Supervisor=5 | total=49
 2026-01-19T22:30:09 request=f624e132078c4943b79e9ef4493d238e API calls for request: SQL Agent=12 | Supervisor=7 | Visualization Agent=1 | total=20
 2026-01-19T22:33:30 request=6abedfca8eb04e5b8db8483c4b117961 API calls for request: SQL Agent=13 | Supervisor=7 | Visualization Agent=1 | total=21
+2026-03-29T22:13:54 request=edc458cd4c72498c956cb76dd76b147b API calls for request: Supervisor=3 | total=3
+2026-05-19T18:20:24 request=3c54dcf1a78446518ddac199d5f70b13 API calls for request: Spider Agent=15 | Supervisor=8 | total=23
+2026-05-19T18:23:30 request=5b63b29fb10e4669a959494caa38fe9f API calls for request: Supervisor=7 | total=7
+2026-05-19T18:30:45 request=49f44decdb824ccdab2ed13cb81a4261 API calls for request: Spider Agent=28 | Supervisor=12 | total=40
+2026-05-20T15:22:43 request=29dbcab9527d4f30b97d91153dae245d API calls for request: Spider Agent=30 | Supervisor=13 | total=43

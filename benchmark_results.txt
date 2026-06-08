@@ -1,0 +1,61 @@
+﻿.\venv\Scripts\python.exe : Error raised by bedrock service
+Au caractère Ligne:1 : 32
++ ... NG='utf-8'; .\venv\Scripts\python.exe test_analysis_agent_benchmark.p ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Error raised by bedrock service:S 
+   tring) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+Traceback (most recent call last):
+  File "C:\Users\charl\OneDrive\Documents\CentraleSup├®lec\2A\ST7-Time-Series-T
+ext-to-Insight-Continuation\venv\Lib\site-packages\langchain_aws\llms\bedrock.p
+y", line 1015, in _prepare_input_and_invoke
+    response = self.client.invoke_model(**request_options)
+  File "C:\Users\charl\OneDrive\Documents\CentraleSup├®lec\2A\ST7-Time-Series-T
+ext-to-Insight-Continuation\venv\Lib\site-packages\botocore\client.py", line 
+602, in _api_call
+    return self._make_api_call(operation_name, kwargs)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\charl\OneDrive\Documents\CentraleSup├®lec\2A\ST7-Time-Series-T
+ext-to-Insight-Continuation\venv\Lib\site-packages\botocore\context.py", line 
+123, in wrapper
+    return func(*args, **kwargs)
+  File "C:\Users\charl\OneDrive\Documents\CentraleSup├®lec\2A\ST7-Time-Series-T
+ext-to-Insight-Continuation\venv\Lib\site-packages\botocore\client.py", line 
+1078, in _make_api_call
+    raise error_class(parsed_response, operation_name)
+botocore.errorfactory.ValidationException: An error occurred 
+(ValidationException) when calling the InvokeModel operation: messages: Field 
+required
+C:\Users\charl\OneDrive\Documents\CentraleSup├®lec\2A\ST7-Time-Series-Text-to-I
+nsight-Continuation\venv\Lib\site-packages\statsmodels\base\model.py:607: 
+ConvergenceWarning: Maximum Likelihood optimization failed to converge. Check 
+mle_retvals
+  warnings.warn("Maximum Likelihood optimization failed to "
+C:\Users\charl\OneDrive\Documents\CentraleSup├®lec\2A\ST7-Time-Series-Text-to-I
+nsight-Continuation\venv\Lib\site-packages\statsmodels\base\model.py:607: 
+ConvergenceWarning: Maximum Likelihood optimization failed to converge. Check 
+mle_retvals
+  warnings.warn("Maximum Likelihood optimization failed to "
+Error raised by bedrock service
+Traceback (most recent call last):
+  File "C:\Users\charl\OneDrive\Documents\CentraleSup├®lec\2A\ST7-Time-Series-T
+ext-to-Insight-Continuation\venv\Lib\site-packages\langchain_aws\llms\bedrock.p
+y", line 1015, in _prepare_input_and_invoke
+    response = self.client.invoke_model(**request_options)
+  File "C:\Users\charl\OneDrive\Documents\CentraleSup├®lec\2A\ST7-Time-Series-T
+ext-to-Insight-Continuation\venv\Lib\site-packages\botocore\client.py", line 
+602, in _api_call
+    return self._make_api_call(operation_name, kwargs)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\charl\OneDrive\Documents\CentraleSup├®lec\2A\ST7-Time-Series-T
+ext-to-Insight-Continuation\venv\Lib\site-packages\botocore\context.py", line 
+123, in wrapper
+    return func(*args, **kwargs)
+  File "C:\Users\charl\OneDrive\Documents\CentraleSup├®lec\2A\ST7-Time-Series-T
+ext-to-Insight-Continuation\venv\Lib\site-packages\botocore\client.py", line 
+1078, in _make_api_call
+    raise error_class(parsed_response, operation_name)
+botocore.errorfactory.ValidationException: An error occurred 
+(ValidationException) when calling the InvokeModel operation: messages: Field 
+required

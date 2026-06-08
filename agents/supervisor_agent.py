@@ -4,8 +4,7 @@ import os
 from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
 from langgraph.graph import END, START, StateGraph
 
-
-from agents.analysis_agent import create_analysis_agent
+from agents.analysis_agent_implem import create_analysis_agent
 from agents.spider_sql_agent import PromptAgentAdapter
 from agents.sql_agent import create_sql_agent
 from agents.visualisation_agent import create_visualization_agent
@@ -100,7 +99,7 @@ def build_supervisor_graph() -> StateGraph:
     ).with_structured_output(SQLAgentOutput)
     analysis_llm = llm_from(
         agent_name="Analysis Agent",
-    ).with_structured_output(AnalysisAgentOutput)
+    )
     visualization_llm = llm_from(
         agent_name="Visualization Agent",
     ).with_structured_output(VisualizationCodeOutput)
