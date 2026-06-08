@@ -1,0 +1,142 @@
+[
+  {
+    "id": "1",
+    "category": "Theme 1 - Simple Queries: Gateways by transfer protocol",
+    "data_source": "gateways",
+    "plot_type": "bar",
+    "question": "Create a vertical bar chart showing the total number of gateways by transfer_protocol."
+  },
+  {
+    "id": "2",
+    "category": "Theme 1 - Simple Queries: Top 5 countries",
+    "data_source": "projects",
+    "plot_type": "barh",
+    "question": "Plot a horizontal bar chart of the top 5 (or less) countries with the most projects."
+  },
+  {
+    "id": "3",
+    "category": "Theme 1 - Simple Queries: Power supply distribution",
+    "data_source": "gateways",
+    "plot_type": "pie",
+    "question": "Show a pie chart of the power_supply types used globally."
+  },
+  {
+    "id": "4",
+    "category": "Theme 1 - Simple Queries: Gateway spatial map",
+    "data_source": "gateways",
+    "plot_type": "scatter",
+    "question": "Plot a scatter graph showing the spatial distribution of gateways using their 'x' and 'y' coordinates. Add a visible grid to the plot."
+  },
+  {
+    "id": "5",
+    "category": "Theme 2 - Complex Style & Joins: Style Extrême (Bar Custom)",
+    "data_source": "projects",
+    "plot_type": "bar",
+    "question": "Create a bar chart of the number of projects per 'time_zone'. Style constraints: the bars MUST be dark red with a thick black border (linewidth=2). The title MUST have a font size of 18, and you must add a dotted horizontal grid behind the bars."
+  },
+  {
+    "id": "6",
+    "category": "Theme 2 - Complex Style & Joins: Style Extrême (Area Line Custom)",
+    "data_source": "gateways",
+    "plot_type": "line",
+    "question": "Show the count of gateways installed per 'installation_date'. Style constraints: the line MUST be thick (linewidth=3), dashed, and dark blue."
+  },
+  {
+    "id": "7",
+    "category": "Theme 2 - Complex Style & Joins: Style Extrême (Pie Custom)",
+    "data_source": "configs",
+    "plot_type": "pie",
+    "question": "Create a pie chart showing the proportion of configs by 'ftp_user'. Style constraints: explode the largest slice (pull it out slightly), add a shadow effect, display the percentages in bold white text, and rotate the start angle to 90 degrees."
+  },
+  {
+    "id": "8",
+    "category": "Theme 2 - Complex Style & Joins: Jointure Complexe (Projet -> Site)",
+    "data_source": "projects, sites",
+    "plot_type": "barh",
+    "question": "Create a horizontal bar chart showing the total number of sites grouped by the project 'client_company_name'. You must perform a join between the projects and sites tables."
+  },
+  {
+    "id": "9",
+    "category": "Theme 2 - Complex Style & Joins: Jointure Complexe (Gateway -> Config)",
+    "data_source": "gateways, configs",
+    "plot_type": "bar",
+    "question": "Which gateway providers have the most configs? Show a bar chart counting the number of configurations grouped by the gateway 'provider' column. You must join the gateways and configs tables."
+  },
+  {
+    "id": "10",
+    "category": "Theme 2 - Complex Style & Joins: Jointure Complexe (Site -> Gateway -> Config)",
+    "data_source": "sites, gateways, configs",
+    "plot_type": "scatter",
+    "question": "Plot a scatter graph showing the relationship between site 'extent' and the number of configurations. You must join sites, gateways, and configs to count the configs per site extent."
+  },
+  {
+    "id": "11",
+    "category": "Theme 2 - ",
+    "data_source": "variables_metrics_raw_data",
+    "plot_type": "histogram",
+    "question": "Show a time series line chart of the 'value' ordered by 'timestamp', Style constraints: the line MUST be thick (linewidth=3), dashed, and dark blue."
+  },
+  {
+    "id": "12",
+    "category": "Theme 3 - Data Science Insights: Average per metric with Std Dev",
+    "data_source": "variables_metrics_raw_data",
+    "plot_type": "bar",
+    "question": "Plot the average 'value' per 'metric' type. You MUST include error bars on the chart representing the standard deviation for each metric."
+  },
+  {
+    "id": "13",
+    "category": "Theme 3 - Data Science Insights: Sum of values per site",
+    "data_source": "sites, gateways, variables_metrics_raw_data",
+    "plot_type": "bar",
+    "question": "Calculate and plot the total sum of the raw data 'value' grouped by the site name ('name_2')."
+  },
+  {
+    "id": "14",
+    "category": "Theme 3 - Data Science Insights: Time series with moving average",
+    "data_source": "variables_metrics_raw_data",
+    "plot_type": "line",
+    "question": "Show a time series line chart of the 'value' ordered by 'timestamp', but apply a rolling mean (moving average) with a window of 3 to smooth the curve."
+  },
+  {
+    "id": "15",
+    "category": "Theme 3 - Data Science Insights: Confidence intervals per unit",
+    "data_source": "variables_metrics_raw_data",
+    "plot_type": "bar",
+    "question": "Calculate the 95% confidence interval for the 'value' column grouped by 'unit'. Display this as a bar chart with error bars showing the confidence intervals."
+  },
+  {
+    "id": "16",
+    "category": "Theme 3 - Data Science Insights: Operating rate boxplot",
+    "data_source": "projects, sites",
+    "plot_type": "box",
+    "question": "Plot a boxplot (boîte à moustaches) of the 'operating_rate' of sites grouped by project 'client_company_name' to show the statistical distribution and outliers."
+  },
+  {
+    "id": "17",
+    "category": "Theme 3 - Data Science Insights: Value variance per sensor",
+    "data_source": "variables_metrics_raw_data",
+    "plot_type": "scatter",
+    "question": "Calculate the statistical variance of the 'value' column for each 'sensor_id'. Plot these variances as a scatter plot with sensor_id on the X-axis."
+  },
+  {
+    "id": "18",
+    "category": "Theme 4 - Traps & Resilience: Hallucinated columns (IP/Battery)",
+    "data_source": "gateways",
+    "plot_type": "bar",
+    "question": "Plot a bar chart of the number of gateways grouped by their 'ip_address' and color them by 'battery_level'."
+  },
+  {
+    "id": "19",
+    "category": "Theme 4 - Traps & Resilience: Off-topic (Smartphones)",
+    "data_source": "None",
+    "plot_type": "pie",
+    "question": "Create a pie chart showing the global market share of Apple vs Samsung smartphones in 2023."
+  },
+  {
+    "id": "20",
+    "category": "Theme 4 - Traps & Resilience: Math on text (Average of names)",
+    "data_source": "projects",
+    "plot_type": "bar",
+    "question": "Calculate the mathematical average of the 'name' column in the projects table and plot it grouped by project 'id'."
+  }
+]

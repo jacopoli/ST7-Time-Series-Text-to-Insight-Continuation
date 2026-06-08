@@ -1,0 +1,574 @@
+{
+  "meta": {
+    "version": "2.0",
+    "project": "Time Series Text-to-Insight",
+    "stack": "LangChain + LangGraph + PostgreSQL + AWS Bedrock",
+    "agents": {
+      "SQL": "Extraction et transformation des données depuis PostgreSQL",
+      "ANALYSIS": "Forecasting, z-score, statistiques, détection d'anomalies",
+      "VIZ": "Génération de code Python et tracé de graphiques"
+    },
+    "routing_legend": {
+      "SQL→VIZ": "Extraction puis visualisation directe",
+      "SQL→ANALYSIS→VIZ": "Extraction, traitement analytique, puis visualisation",
+      "SQL→ANALYSIS": "Extraction et analyse sans sortie graphique",
+      "SQL→VIZ + SQL→ANALYSIS→VIZ": "Deux branches parallèles fusionnées en dashboard"
+    },
+    "total_questions": 40
+  },
+  "benchmark_scenarios": [
+
+    {
+      "id": "q_001",
+      "difficulty": "intermediate",
+      "category": "visualisation_brute",
+      "question": "Trace la série temporelle brute d'AccelerationZ pour la gateway 'Gateway-Tisséo Ligne A' sur les 7 derniers jours. Affiche les timestamps en heure locale Europe/Paris.",
+      "agents_required": ["SQL", "VIZ"],
+      "routing": "SQL→VIZ",
+      "sql_task": "SELECT timestamp AT TIME ZONE 'Europe/Paris', value FROM mesures WHERE gateway_name = 'Gateway-Tisséo Ligne A' AND variable_name = 'AccelerationZ' AND timestamp >= NOW() - INTERVAL '7 days' ORDER BY timestamp",
+      "viz_task": "Line chart, axe X = datetime locale, axe Y = m/s², titre dynamique avec nom gateway et plage de dates",
+      "expected_output": "Graphique ligne unique, gestion DST (+0100/+0200), axe Y en m/s²",
+      "edge_cases": ["Trous de données si capteur hors-ligne", "Changement d'heure DST dans la fenêtre"]
+    },
+
+    {
+      "id": "q_002",
+      "difficulty": "intermediate",
+      "category": "statistiques_basiques",
+      "question": "Pour la gateway 'Gateway-Tisséo Ligne A', calcule la moyenne, le min, le max et l'écart-type de l'AccelerationZ sur les 30 derniers jours, puis affiche-les sous forme de bar chart annoté.",
+      "agents_required": ["SQL", "ANALYSIS", "VIZ"],
+      "routing": "SQL→ANALYSIS→VIZ",
+      "sql_task": "SELECT value FROM mesures WHERE gateway_name = '...' AND variable_name = 'AccelerationZ' AND timestamp >= NOW() - INTERVAL '30 days'",
+      "analysis_task": "Calculer mean, min, max, std sur le vecteur extrait",
+      "viz_task": "Bar chart horizontal avec 4 barres annotées (valeur + unité m/s²), couleurs sémantiques",
+      "expected_output": "Tableau de statistiques descriptives + bar chart",
+      "edge_cases": ["Valeurs nulles ou NaN dans la série", "Variance nulle si capteur bloqué sur une valeur constante"]
+    },
+
+    {
+      "id": "q_003",
+      "difficulty": "intermediate",
+      "category": "multi_variable",
+      "question": "Affiche sur le même graphique MagnitudeX, MagnitudeY et MagnitudeZ pour la gateway 'Gateway-Tisséo Ligne A' sur 48 heures. Ajoute une légende et les unités.",
+      "agents_required": ["SQL", "VIZ"],
+      "routing": "SQL→VIZ",
+      "sql_task": "SELECT timestamp, variable_name, value FROM mesures WHERE gateway_name = '...' AND variable_name IN ('MagnitudeX','MagnitudeY','MagnitudeZ') AND timestamp >= NOW() - INTERVAL '48 hours' ORDER BY timestamp",
+      "viz_task": "Multi-line chart, pivot sur variable_name, légende, axe Y en µT, gestion timestamps TZ",
+      "expected_output": "3 courbes colorées sur même axe Y (µT), légende, titre avec plage de dates",
+      "edge_cases": ["Fréquences d'échantillonnage différentes entre les trois composantes", "Absence totale d'une composante sur la fenêtre"]
+    },
+
+    {
+      "id": "q_004",
+      "difficulty": "complex",
+      "category": "detection_anomalies",
+      "question": "Détecte les anomalies sur la série AccelerationZ de la gateway 'Gateway-Tisséo Ligne A' au cours des 14 derniers jours via un z-score (seuil |z| > 3). Visualise la série avec les points aberrants mis en évidence en rouge.",
+      "agents_required": ["SQL", "ANALYSIS", "VIZ"],
+      "routing": "SQL→ANALYSIS→VIZ",
+      "sql_task": "SELECT timestamp AT TIME ZONE 'Europe/Paris', value FROM mesures WHERE gateway_name = '...' AND variable_name = 'AccelerationZ' AND timestamp >= NOW() - INTERVAL '14 days'",
+      "analysis_task": "Calcul z-score = (x - mean) / std, masque booléen sur |z| > 3, liste des timestamps anomalies",
+      "viz_task": "Line chart avec scatter overlay rouge sur les points anomalies, annotation du nombre d'anomalies détectées",
+      "expected_output": "Graphique ligne + points rouges sur anomalies + compte d'anomalies en titre ou annotation",
+      "edge_cases": ["Série trop courte pour z-score significatif", "Toutes les valeurs identiques (std = 0, division par zéro)", "Anomalies consécutives formant un cluster"]
+    },
+
+    {
+      "id": "q_005",
+      "difficulty": "complex",
+      "category": "forecasting",
+      "question": "À partir des données d'AccelerationZ de la gateway 'Gateway-Tisséo Ligne A' sur les 30 derniers jours, effectue un forecasting sur les 48 prochaines heures et affiche la prédiction avec un intervalle de confiance à 95%.",
+      "agents_required": ["SQL", "ANALYSIS", "VIZ"],
+      "routing": "SQL→ANALYSIS→VIZ",
+      "sql_task": "SELECT timestamp, value FROM mesures WHERE gateway_name = '...' AND variable_name = 'AccelerationZ' AND timestamp >= NOW() - INTERVAL '30 days' ORDER BY timestamp",
+      "analysis_task": "Modèle de forecasting (ex: ARIMA, Prophet ou régression polynomiale), calcul de l'IC 95%, génération de N points futurs avec timestamps",
+      "viz_task": "Line chart avec bande de confiance (fill_between), distinction visuelle passé/futur (ligne pointillée pour la prédiction)",
+      "expected_output": "Courbe historique + prédiction avec bande IC 95%",
+      "edge_cases": ["Données insuffisantes pour la saisonnalité", "Trous dans la série historique qui faussent le modèle", "Valeurs prédites négatives physiquement impossibles"]
+    },
+
+    {
+      "id": "q_006",
+      "difficulty": "complex",
+      "category": "multi_gateway",
+      "question": "Compare les niveaux d'AccelerationZ moyens par heure sur les 7 derniers jours pour toutes les gateways du projet 'M3-GC03 TIS France'. Affiche une heatmap gateway × heure.",
+      "agents_required": ["SQL", "ANALYSIS", "VIZ"],
+      "routing": "SQL→ANALYSIS→VIZ",
+      "sql_task": "JOIN mesures, gateways, projets WHERE project_name = 'M3-GC03 TIS France' AND variable_name = 'AccelerationZ', GROUP BY gateway_name, EXTRACT(HOUR FROM timestamp AT TIME ZONE 'Europe/Paris')",
+      "analysis_task": "Pivot en matrice 2D (lignes = gateways, colonnes = heures 0-23), remplissage des trous avec NaN",
+      "viz_task": "Heatmap seaborn/matplotlib, annotations des valeurs, barre de couleur en m/s², titre avec nom projet",
+      "expected_output": "Heatmap N_gateways × 24h, unité m/s², légende de couleur",
+      "edge_cases": ["Gateway sans mesure sur certaines heures (NaN dans la matrice)", "Gateways avec fuseaux horaires différents dans le même projet"]
+    },
+
+    {
+      "id": "q_007",
+      "difficulty": "complex",
+      "category": "dashboard",
+      "question": "Génère un dashboard 4 panneaux pour la gateway 'Gateway-Tisséo Ligne A' sur les 7 derniers jours : (1) série AccelerationZ avec anomalies z-score, (2) distribution VarianceX en histogramme, (3) heatmap MagnitudeZ par heure/jour, (4) scatter MagnitudeX vs MagnitudeY.",
+      "agents_required": ["SQL", "ANALYSIS", "VIZ"],
+      "routing": "SQL→ANALYSIS→VIZ",
+      "sql_task": "4 requêtes parallèles pour AccelerationZ, VarianceX, MagnitudeZ, MagnitudeX+Y sur 7 jours",
+      "analysis_task": "Z-score sur AccelerationZ, pivot MagnitudeZ en matrice heure×jour",
+      "viz_task": "Figure 2×2 avec subplots, titres individuels, unités correctes par panneau, palette cohérente",
+      "expected_output": "Dashboard 2×2 panneaux : ligne+anomalies, histogramme, heatmap, scatter",
+      "edge_cases": ["Unités hétérogènes sur le même dashboard", "Un panneau vide si variable absente"]
+    },
+
+    {
+      "id": "q_008",
+      "difficulty": "intermediate",
+      "category": "distribution",
+      "question": "Affiche des boxplots côte à côte des valeurs d'AccelerationZ, VarianceX et VarianceY pour la gateway 'Gateway-Tisséo Ligne A' sur les 30 derniers jours.",
+      "agents_required": ["SQL", "VIZ"],
+      "routing": "SQL→VIZ",
+      "sql_task": "SELECT variable_name, value FROM mesures WHERE gateway_name = '...' AND variable_name IN ('AccelerationZ','VarianceX','VarianceY') AND timestamp >= NOW() - INTERVAL '30 days'",
+      "viz_task": "Boxplots côte à côte, annotation min/max/median, note sur l'hétérogénéité des unités (m/s² vs sans unité)",
+      "expected_output": "3 boxplots, axes Y distincts ou double axe si unités différentes, outliers visibles",
+      "edge_cases": ["Unités incomparables sur un axe commun", "Distribution très asymétrique rendant la boîte plate"]
+    },
+
+    {
+      "id": "q_009",
+      "difficulty": "complex",
+      "category": "correlation",
+      "question": "Calcule et affiche la matrice de corrélation (Pearson) entre AccelerationZ, VarianceX, VarianceY, MagnitudeX, MagnitudeY, MagnitudeZ pour la gateway 'Gateway-Tisséo Ligne A' sur les 30 derniers jours.",
+      "agents_required": ["SQL", "ANALYSIS", "VIZ"],
+      "routing": "SQL→ANALYSIS→VIZ",
+      "sql_task": "SELECT timestamp, variable_name, value FROM mesures WHERE ... ORDER BY timestamp, JOIN avec pivot sur variable_name",
+      "analysis_task": "Pivot DataFrame (colonnes = variables), calcul corr() Pearson, masque triangulaire supérieur",
+      "viz_task": "Heatmap corrélation 6×6, annotations des valeurs r, colormap divergente (-1 rouge, 0 blanc, 1 bleu)",
+      "expected_output": "Heatmap corrélation annotée avec valeurs r arrondies à 2 décimales",
+      "edge_cases": ["Variable avec variance nulle (corrélation NaN)", "Timestamps désalignés entre variables nécessitant un resampling"]
+    },
+
+    {
+      "id": "q_010",
+      "difficulty": "complex",
+      "category": "multi_axe",
+      "question": "Trace AccelerationZ (axe Y principal, m/s²) et MagnitudeX (axe Y secondaire, µT) sur la même timeline pour la gateway 'Gateway-Tisséo Ligne A' sur les 72 dernières heures.",
+      "agents_required": ["SQL", "VIZ"],
+      "routing": "SQL→VIZ",
+      "sql_task": "SELECT timestamp, variable_name, value FROM mesures WHERE variable_name IN ('AccelerationZ','MagnitudeX') AND timestamp >= NOW() - INTERVAL '72 hours'",
+      "viz_task": "Double axe Y (twinx), couleurs distinctes par axe, légende combinée, gestion synchronisation des timestamps",
+      "expected_output": "Graphique dual-axis, couleurs différentes pour chaque série, légende unifiée",
+      "edge_cases": ["Fréquences d'échantillonnage différentes entre les deux variables", "Échelles très différentes cachant les variations d'une des séries"]
+    },
+
+    {
+      "id": "q_011",
+      "difficulty": "complex",
+      "category": "decomposition",
+      "question": "Effectue une décomposition de la série temporelle d'AccelerationZ (tendance, saisonnalité, résidus) pour la gateway 'Gateway-Tisséo Ligne A' sur les 30 derniers jours. Affiche les 4 composantes en subplots empilés.",
+      "agents_required": ["SQL", "ANALYSIS", "VIZ"],
+      "routing": "SQL→ANALYSIS→VIZ",
+      "sql_task": "SELECT timestamp, value FROM mesures WHERE ... ORDER BY timestamp",
+      "analysis_task": "Resample régulier, seasonal_decompose (additive ou multiplicative selon variance), extraction trend/seasonal/residual",
+      "viz_task": "4 subplots empilés (signal brut, tendance, saisonnalité, résidus), axe X partagé, unité m/s² sur chaque panneau",
+      "expected_output": "Figure 4 panneaux verticaux avec axes X synchronisés",
+      "edge_cases": ["Trous dans la série empêchant la décomposition directe (nécessite interpolation préalable)", "Période de saisonnalité impossible à détecter si série trop courte"]
+    },
+
+    {
+      "id": "q_012",
+      "difficulty": "complex",
+      "category": "sparse_data",
+      "question": "Pour la gateway 'Gateway-Tisséo Ligne A', identifie et visualise les périodes sans aucune mesure d'AccelerationZ sur les 14 derniers jours. Les trous supérieurs à 1 heure doivent être ombrés en rouge sur le graphique.",
+      "agents_required": ["SQL", "ANALYSIS", "VIZ"],
+      "routing": "SQL→ANALYSIS→VIZ",
+      "sql_task": "SELECT timestamp, value FROM mesures WHERE ... ORDER BY timestamp",
+      "analysis_task": "Calcul des deltas entre timestamps consécutifs, identification des gaps > 1h, liste des intervalles [start, end]",
+      "viz_task": "Line chart avec axvspan rouge sur les périodes de gap identifiées, légende indiquant le nombre et la durée totale des trous",
+      "expected_output": "Série avec zones rouges ombrées sur les gaps, comptage des gaps en annotation",
+      "edge_cases": ["Pas de gap du tout (pas de zones à ombrer)", "Gap au début ou à la fin de la fenêtre temporelle"]
+    },
+
+    {
+      "id": "q_013",
+      "difficulty": "intermediate",
+      "category": "agregation_temporelle",
+      "question": "Affiche l'évolution de la moyenne horaire d'AccelerationZ pour la gateway 'Gateway-Tisséo Ligne A' sur les 7 derniers jours, avec des barres d'erreur représentant ±1 écart-type.",
+      "agents_required": ["SQL", "ANALYSIS", "VIZ"],
+      "routing": "SQL→ANALYSIS→VIZ",
+      "sql_task": "SELECT DATE_TRUNC('hour', timestamp AT TIME ZONE 'Europe/Paris'), AVG(value), STDDEV(value) FROM mesures WHERE ... GROUP BY 1 ORDER BY 1",
+      "analysis_task": "Vérification des intervalles horaires vides, remplissage avec NaN si besoin",
+      "viz_task": "Bar chart ou line chart avec errorbar ±1 std, axe X = heures locales, axe Y = m/s²",
+      "expected_output": "Série horaire avec barres d'erreur, 168 points maximum sur 7 jours",
+      "edge_cases": ["Heures avec une seule mesure (std = 0 ou NaN)", "Passage heure été/heure hiver dans la fenêtre"]
+    },
+
+    {
+      "id": "q_014",
+      "difficulty": "complex",
+      "category": "multi_projet",
+      "question": "Compare les distributions de MagnitudeZ pour toutes les gateways du projet 'M3-GC03 TIS France' via un violin plot. Une couleur par gateway, titre avec nom de projet et période.",
+      "agents_required": ["SQL", "VIZ"],
+      "routing": "SQL→VIZ",
+      "sql_task": "JOIN mesures, gateways, projets WHERE project_name = '...' AND variable_name = 'MagnitudeZ' AND timestamp >= NOW() - INTERVAL '30 days', GROUP BY gateway_name",
+      "viz_task": "Violin plot avec un violon par gateway_name, couleurs distinctes, axe Y en µT, légende",
+      "expected_output": "N violons côte à côte (un par gateway), unité µT, gestion des distributions asymétriques",
+      "edge_cases": ["Gateway avec trop peu de points pour un violon (< 10 mesures)", "Distributions très différentes nécessitant un axe Y log"]
+    },
+
+    {
+      "id": "q_015",
+      "difficulty": "complex",
+      "category": "rolling_statistics",
+      "question": "Pour la gateway 'Gateway-Tisséo Ligne A', trace la moyenne mobile sur 1 heure et les bandes de Bollinger (±2 std mobiles) de l'AccelerationZ sur les 7 derniers jours.",
+      "agents_required": ["SQL", "ANALYSIS", "VIZ"],
+      "routing": "SQL→ANALYSIS→VIZ",
+      "sql_task": "SELECT timestamp, value FROM mesures WHERE ... ORDER BY timestamp",
+      "analysis_task": "Rolling mean et rolling std sur fenêtre 1h, calcul upper/lower band = mean ± 2*std",
+      "viz_task": "Line chart : série brute (grise), moyenne mobile (bleue), bandes Bollinger (fill_between semi-transparent)",
+      "expected_output": "3 couches visuelles : signal brut + moyenne mobile + bandes de confiance",
+      "edge_cases": ["Début de série avec fenêtre incomplète (NaN rolling)", "Périodes de faible volatilité rendant les bandes très étroites"]
+    },
+
+    {
+      "id": "q_016",
+      "difficulty": "intermediate",
+      "category": "cdf",
+      "question": "Génère la fonction de distribution cumulative (CDF) de MagnitudeX pour toutes les gateways du projet 'M3-GC03 TIS France'. Une courbe par gateway sur le même graphique.",
+      "agents_required": ["SQL", "VIZ"],
+      "routing": "SQL→VIZ",
+      "sql_task": "JOIN mesures, gateways, projets WHERE project_name = '...' AND variable_name = 'MagnitudeX' AND timestamp >= NOW() - INTERVAL '30 days'",
+      "viz_task": "CDF empirique par gateway (np.sort + np.arange/N), axe X en µT, axe Y en probabilité [0, 1], légende gateway_name",
+      "expected_output": "N courbes CDF colorées, axe Y = [0, 1], axe X = µT",
+      "edge_cases": ["Gateways avec des ordres de grandeur très différents sur l'axe X", "Gateway avec une seule valeur unique"]
+    },
+
+    {
+      "id": "q_017",
+      "difficulty": "complex",
+      "category": "alerting",
+      "question": "Identifie toutes les gateways du projet 'M3-GC03 TIS France' dont l'AccelerationZ a dépassé 3 fois son écart-type moyen au cours des 7 derniers jours. Retourne un résumé texte et un bar chart du nombre d'anomalies par gateway.",
+      "agents_required": ["SQL", "ANALYSIS", "VIZ"],
+      "routing": "SQL→ANALYSIS→VIZ",
+      "sql_task": "JOIN mesures, gateways, projets WHERE project_name = '...' AND variable_name = 'AccelerationZ' AND timestamp >= NOW() - INTERVAL '7 days'",
+      "analysis_task": "Z-score par gateway indépendamment, comptage des événements |z| > 3 par gateway",
+      "viz_task": "Bar chart horizontal trié par nombre d'anomalies décroissant, couleur rouge si > seuil critique, annotation du count",
+      "expected_output": "Résumé textuel (N gateways concernées) + bar chart triée par criticité",
+      "edge_cases": ["Aucune gateway en anomalie (bar chart vide)", "Gateway avec std = 0 (z-score non calculable)"]
+    },
+
+    {
+      "id": "q_018",
+      "difficulty": "complex",
+      "category": "forecasting_multi",
+      "question": "Prédit les valeurs de VarianceX et VarianceY pour les 24 prochaines heures à partir des 14 derniers jours, pour la gateway 'Gateway-Tisséo Ligne A'. Affiche les deux prédictions en subplots avec intervalles de confiance.",
+      "agents_required": ["SQL", "ANALYSIS", "VIZ"],
+      "routing": "SQL→ANALYSIS→VIZ",
+      "sql_task": "SELECT timestamp, variable_name, value FROM mesures WHERE variable_name IN ('VarianceX','VarianceY') AND timestamp >= NOW() - INTERVAL '14 days' ORDER BY timestamp",
+      "analysis_task": "Forecasting indépendant sur chaque variable, IC 95% sur chaque horizon",
+      "viz_task": "2 subplots empilés, axe X partagé, zone prédiction distincte (fond grisé), bandes IC 95%",
+      "expected_output": "2 panneaux : VarianceX (haut), VarianceY (bas), avec prédiction + incertitude",
+      "edge_cases": ["Variance nulle sur toute la fenêtre (série constante)", "Discontinuité dans la série historique"]
+    },
+
+    {
+      "id": "q_019",
+      "difficulty": "intermediate",
+      "category": "agregation_spatiale",
+      "question": "Affiche un bar chart groupé des statistiques (min, moyenne, max) de l'AccelerationZ par gateway pour le projet 'M3-GC03 TIS France' sur le dernier mois.",
+      "agents_required": ["SQL", "VIZ"],
+      "routing": "SQL→VIZ",
+      "sql_task": "JOIN mesures, gateways, projets WHERE project_name = '...' AND variable_name = 'AccelerationZ', GROUP BY gateway_name: SELECT MIN(value), AVG(value), MAX(value)",
+      "viz_task": "Grouped bar chart (3 barres par gateway), couleurs distinctes par statistique, axe Y en m/s², légende",
+      "expected_output": "Bar chart groupé : N groupes (gateways) × 3 barres (min/avg/max)",
+      "edge_cases": ["Gateway sans aucune donnée sur la période (groupe absent ou barre NaN)", "Min et max identiques si série constante"]
+    },
+
+    {
+      "id": "q_020",
+      "difficulty": "complex",
+      "category": "synchronisation_temporelle",
+      "question": "Pour la gateway 'Gateway-Tisséo Ligne A', génère 4 subplots synchronisés sur le même axe X pour AccelerationZ, VarianceX, MagnitudeX et MagnitudeZ sur les 72 dernières heures. Les timestamps doivent être en heure locale Europe/Paris.",
+      "agents_required": ["SQL", "VIZ"],
+      "routing": "SQL→VIZ",
+      "sql_task": "SELECT timestamp AT TIME ZONE 'Europe/Paris', variable_name, value FROM mesures WHERE variable_name IN ('AccelerationZ','VarianceX','MagnitudeX','MagnitudeZ') AND timestamp >= NOW() - INTERVAL '72 hours'",
+      "viz_task": "4 subplots empilés avec sharex=True, chaque panneau avec son propre axe Y et son unité (m/s², sans unité, µT, µT), axe X formaté en heure locale",
+      "expected_output": "4 panneaux verticaux, zoom synchronisé, axe X commun en heure locale",
+      "edge_cases": ["Fréquences d'échantillonnage hétérogènes entre variables", "Passage DST dans la fenêtre 72h"]
+    },
+
+    {
+      "id": "q_021",
+      "difficulty": "complex",
+      "category": "anomalie_multivariate",
+      "question": "Détecte les anomalies multivariées en combinant les z-scores de AccelerationZ, MagnitudeX et MagnitudeZ pour la gateway 'Gateway-Tisséo Ligne A' sur 14 jours. Un timestamp est anormal si au moins 2 des 3 variables sont en anomalie simultanément. Visualise le résultat.",
+      "agents_required": ["SQL", "ANALYSIS", "VIZ"],
+      "routing": "SQL→ANALYSIS→VIZ",
+      "sql_task": "SELECT timestamp, variable_name, value FROM mesures WHERE variable_name IN ('AccelerationZ','MagnitudeX','MagnitudeZ') AND timestamp >= NOW() - INTERVAL '14 days'",
+      "analysis_task": "Pivot DataFrame, calcul z-score par colonne, masque binaire par variable (|z|>3), règle de vote 2/3, timestamps anomalies finaux",
+      "viz_task": "3 lignes en subplots avec zones verticales ombrées aux timestamps anomalies multivariées, annotation du compte total",
+      "expected_output": "3 subplots synchronisés avec événements anomalies communs ombrés en rouge",
+      "edge_cases": ["Timestamps désalignés entre variables (nécessite merge asof)", "Aucune co-anomalie sur la fenêtre"]
+    },
+
+    {
+      "id": "q_022",
+      "difficulty": "complex",
+      "category": "tendance",
+      "question": "Pour chaque gateway du projet 'M3-GC03 TIS France', calcule la tendance linéaire (pente) de l'AccelerationZ sur les 30 derniers jours. Affiche un bar chart des pentes avec code couleur (rouge = hausse, bleu = baisse).",
+      "agents_required": ["SQL", "ANALYSIS", "VIZ"],
+      "routing": "SQL→ANALYSIS→VIZ",
+      "sql_task": "JOIN mesures, gateways, projets WHERE project_name = '...' AND variable_name = 'AccelerationZ' AND timestamp >= NOW() - INTERVAL '30 days'",
+      "analysis_task": "Régression linéaire (numpy polyfit ou scipy linregress) par gateway, extraction de la pente en m/s²/jour",
+      "viz_task": "Bar chart horizontal, barres rouges si pente > 0, barres bleues si pente < 0, annotation des valeurs, axe X = pente (m/s²/jour)",
+      "expected_output": "Bar chart avec code couleur directionnel, unité pente en m/s²/jour",
+      "edge_cases": ["Pente non significative (R² très faible)", "Données trop peu nombreuses pour la régression"]
+    },
+
+    {
+      "id": "q_023",
+      "difficulty": "complex",
+      "category": "agregation_temporelle_fine",
+      "question": "Pour la gateway 'Gateway-Tisséo Ligne A', génère une heatmap des valeurs médianes de MagnitudeZ agrégées par jour de la semaine (0-6) et par heure (0-23) sur les 30 derniers jours.",
+      "agents_required": ["SQL", "ANALYSIS", "VIZ"],
+      "routing": "SQL→ANALYSIS→VIZ",
+      "sql_task": "SELECT EXTRACT(DOW FROM timestamp AT TIME ZONE 'Europe/Paris') as dow, EXTRACT(HOUR FROM timestamp AT TIME ZONE 'Europe/Paris') as hour, PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY value) FROM mesures WHERE ... GROUP BY dow, hour",
+      "analysis_task": "Pivot en matrice 7×24, remplissage des cellules vides avec NaN",
+      "viz_task": "Heatmap 7×24, axe X = heures (0-23), axe Y = jours (Lun-Dim), colormap froid/chaud, annotations optionnelles",
+      "expected_output": "Heatmap 7 lignes × 24 colonnes, mise en évidence des patterns intra-semaine",
+      "edge_cases": ["Certains créneaux sans données (NaN dans la matrice)", "Données insuffisantes sur certains jours de la semaine"]
+    },
+
+    {
+      "id": "q_024",
+      "difficulty": "complex",
+      "category": "comparaison_inter_capteurs",
+      "question": "Compare les profils temporels quotidiens moyens (signature journalière) de l'AccelerationZ entre deux gateways du projet 'M3-GC03 TIS France' sur les 30 derniers jours. Affiche les deux profils sur le même graphique avec leur intervalle de confiance.",
+      "agents_required": ["SQL", "ANALYSIS", "VIZ"],
+      "routing": "SQL→ANALYSIS→VIZ",
+      "sql_task": "JOIN mesures, gateways, projets WHERE project_name = '...' AND variable_name = 'AccelerationZ', GROUP BY gateway_name, EXTRACT(HOUR FROM timestamp AT TIME ZONE 'Europe/Paris'): AVG + STDDEV",
+      "analysis_task": "Signature journalière (profil moyen 24h) + IC 95% = mean ± 1.96*std/sqrt(N) par heure, pour chaque gateway",
+      "viz_task": "2 courbes colorées (une par gateway) avec fill_between pour IC, axe X = 0-23h, axe Y = m/s², légende",
+      "expected_output": "Profils journaliers comparés sur 24h avec bandes d'incertitude",
+      "edge_cases": ["Heures sans mesure pour une des gateways", "Profils quasiment identiques (gateways très proches physiquement)"]
+    },
+
+    {
+      "id": "q_025",
+      "difficulty": "complex",
+      "category": "histogramme_conditionnel",
+      "question": "Pour la gateway 'Gateway-Tisséo Ligne A', trace des histogrammes superposés de l'AccelerationZ en séparant les mesures de jour (6h-22h) et de nuit (22h-6h) sur les 30 derniers jours.",
+      "agents_required": ["SQL", "ANALYSIS", "VIZ"],
+      "routing": "SQL→ANALYSIS→VIZ",
+      "sql_task": "SELECT value, EXTRACT(HOUR FROM timestamp AT TIME ZONE 'Europe/Paris') as hour FROM mesures WHERE variable_name = 'AccelerationZ' AND timestamp >= NOW() - INTERVAL '30 days'",
+      "analysis_task": "Partitionnement jour/nuit selon l'heure locale, calcul des statistiques descriptives par tranche",
+      "viz_task": "Histogrammes superposés semi-transparents (alpha=0.6), légende jour/nuit, axe X = m/s², axe Y = fréquence ou densité",
+      "expected_output": "2 histogrammes superposés, test visuel de différence de distribution jour/nuit",
+      "edge_cases": ["Capteur inactif la nuit (histogramme nuit vide)", "Passage heure été/hiver modifiant le découpage horaire"]
+    },
+
+    {
+      "id": "q_026",
+      "difficulty": "complex",
+      "category": "event_detection",
+      "question": "Détecte les événements de vibration intense (AccelerationZ > mean + 2*std) pour toutes les gateways du projet 'M3-GC03 TIS France' au cours des 7 derniers jours. Retourne la liste horodatée des événements et leur intensité en z-score.",
+      "agents_required": ["SQL", "ANALYSIS"],
+      "routing": "SQL→ANALYSIS",
+      "sql_task": "JOIN mesures, gateways, projets WHERE project_name = '...' AND variable_name = 'AccelerationZ' AND timestamp >= NOW() - INTERVAL '7 days'",
+      "analysis_task": "Z-score par gateway, filtrage z > 2, liste triée par timestamp avec colonnes [timestamp, gateway_name, value, z_score]",
+      "viz_task": "Aucune visualisation requise — sortie tabulaire structurée",
+      "expected_output": "DataFrame/table : timestamp (TZ locale), gateway_name, value (m/s²), z_score, sévérité (medium/high/critical)",
+      "edge_cases": ["Centaines d'événements (table volumineuse à tronquer)", "Aucun événement sur la période"]
+    },
+
+    {
+      "id": "q_027",
+      "difficulty": "complex",
+      "category": "forecasting_alerting",
+      "question": "Prédit l'AccelerationZ de la gateway 'Gateway-Tisséo Ligne A' pour les 6 prochaines heures et alerte si la prédiction dépasse un seuil de 2.0 m/s². Affiche la prédiction et le seuil d'alerte sur le graphique.",
+      "agents_required": ["SQL", "ANALYSIS", "VIZ"],
+      "routing": "SQL→ANALYSIS→VIZ",
+      "sql_task": "SELECT timestamp, value FROM mesures WHERE gateway_name = '...' AND variable_name = 'AccelerationZ' AND timestamp >= NOW() - INTERVAL '7 days' ORDER BY timestamp",
+      "analysis_task": "Forecasting 6h, détection des intervalles temporels où la prédiction dépasse 2.0 m/s², génération d'un message d'alerte booléen",
+      "viz_task": "Line chart : historique + prédiction (pointillé) + ligne horizontale rouge sur le seuil 2.0 m/s² + annotation ALERTE si seuil franchi",
+      "expected_output": "Graphique avec indicateur d'alerte visuel, texte ALERTE si dépassement prédit",
+      "edge_cases": ["Prédiction toujours sous le seuil (pas d'alerte)", "Modèle incertain avec IC très large franchissant le seuil"]
+    },
+
+    {
+      "id": "q_028",
+      "difficulty": "complex",
+      "category": "analyse_spectrale",
+      "question": "Calcule et affiche la densité spectrale de puissance (PSD) de l'AccelerationZ pour la gateway 'Gateway-Tisséo Ligne A' sur les 7 derniers jours. Identifie la fréquence dominante.",
+      "agents_required": ["SQL", "ANALYSIS", "VIZ"],
+      "routing": "SQL→ANALYSIS→VIZ",
+      "sql_task": "SELECT timestamp, value FROM mesures WHERE ... ORDER BY timestamp",
+      "analysis_task": "Resample à fréquence régulière, calcul PSD via scipy.signal.welch ou np.fft, identification du pic fréquentiel dominant",
+      "viz_task": "Graphique log-log de la PSD (axe X = fréquence Hz, axe Y = puissance m²/s⁴/Hz), annotation de la fréquence dominante",
+      "expected_output": "Spectre de puissance avec pic dominant annoté, échelle log-log",
+      "edge_cases": ["Fréquence d'échantillonnage irrégulière nécessitant un resample", "Bruit dominant masquant toute fréquence physique"]
+    },
+
+    {
+      "id": "q_029",
+      "difficulty": "complex",
+      "category": "donnees_manquantes",
+      "question": "Pour la gateway 'Gateway-Tisséo Ligne A', analyse le taux de données manquantes par variable (AccelerationZ, VarianceX, VarianceY, MagnitudeX, MagnitudeY, MagnitudeZ) sur les 30 derniers jours. Affiche un bar chart des taux de complétude et un heatmap temporal des gaps.",
+      "agents_required": ["SQL", "ANALYSIS", "VIZ"],
+      "routing": "SQL→ANALYSIS→VIZ",
+      "sql_task": "COUNT(*) par variable_name sur 30 jours + COUNT(*) théorique basé sur la fréquence attendue du capteur",
+      "analysis_task": "Taux de complétude = N_reçus / N_attendus, matrice de présence/absence résampée par heure",
+      "viz_task": "Dashboard : bar chart complétude (gauche) + heatmap binaire présence/absence par variable × heure (droite)",
+      "expected_output": "2 sous-graphiques : completeness bar chart + heatmap temporelle de disponibilité",
+      "edge_cases": ["Fréquence théorique inconnue (hypothèse à documenter)", "Variable absente de la base (taux = 0%)"]
+    },
+
+    {
+      "id": "q_030",
+      "difficulty": "complex",
+      "category": "comparaison_temporelle",
+      "question": "Compare les profils hebdomadaires d'AccelerationZ de la gateway 'Gateway-Tisséo Ligne A' sur les 4 dernières semaines. Affiche une courbe par semaine sur le même graphique (axe X = 0 à 168h).",
+      "agents_required": ["SQL", "ANALYSIS", "VIZ"],
+      "routing": "SQL→ANALYSIS→VIZ",
+      "sql_task": "SELECT timestamp, value FROM mesures WHERE ... AND timestamp >= NOW() - INTERVAL '28 days' ORDER BY timestamp",
+      "analysis_task": "Partitionnement en 4 fenêtres hebdomadaires, normalisation des timestamps relatifs (0-168h), resampling horaire si besoin",
+      "viz_task": "4 courbes colorées sur axe X = heures relatives (0-168h), légende avec dates de la semaine, axe Y = m/s²",
+      "expected_output": "Superposition de 4 profils hebdomadaires pour identifier la répétabilité ou les dérives",
+      "edge_cases": ["Semaines incomplètes aux extrémités de la fenêtre", "Forte variabilité rendant la comparaison illisible"]
+    },
+
+    {
+      "id": "q_031",
+      "difficulty": "complex",
+      "category": "spatial_analysis",
+      "question": "Pour tous les projets de la ville de Toulouse, calcule le z-score global d'AccelerationZ moyen par projet sur les 7 derniers jours. Affiche un bar chart avec code couleur selon le niveau de risque (vert < 1, orange 1-2, rouge > 2).",
+      "agents_required": ["SQL", "ANALYSIS", "VIZ"],
+      "routing": "SQL→ANALYSIS→VIZ",
+      "sql_task": "JOIN mesures, gateways, projets WHERE projets.city = 'Toulouse' AND variable_name = 'AccelerationZ' AND timestamp >= NOW() - INTERVAL '7 days', GROUP BY project_name: AVG(value)",
+      "analysis_task": "Z-score des moyennes par projet (normalisation inter-projets), classification en 3 niveaux de risque",
+      "viz_task": "Bar chart horizontal coloré (vert/orange/rouge), légende niveaux de risque, axe X = z-score, annotation du nom projet",
+      "expected_output": "Bar chart avec code couleur risque, 3 niveaux représentés dans la légende",
+      "edge_cases": ["Un seul projet à Toulouse (z-score non défini)", "Projets avec types différents (GARE vs MAT vs OTHERS) à distinguer visuellement"]
+    },
+
+    {
+      "id": "q_032",
+      "difficulty": "complex",
+      "category": "analyse_croisee",
+      "question": "Pour la gateway 'Gateway-Tisséo Ligne A', trace la fonction d'autocorrélation (ACF) et l'autocorrélation partielle (PACF) de l'AccelerationZ sur les 30 derniers jours. Affiche les deux dans des subplots.",
+      "agents_required": ["SQL", "ANALYSIS", "VIZ"],
+      "routing": "SQL→ANALYSIS→VIZ",
+      "sql_task": "SELECT timestamp, value FROM mesures WHERE ... ORDER BY timestamp",
+      "analysis_task": "Resample régulier, calcul ACF et PACF (statsmodels), extraction des lags significatifs avec intervalle de confiance",
+      "viz_task": "2 subplots : ACF (haut) et PACF (bas), barres verticales aux lags, bandes de confiance en pointillés à ±1.96/sqrt(N)",
+      "expected_output": "Graphique ACF/PACF avec zones de confiance, indications des lags significatifs",
+      "edge_cases": ["Série non stationnaire (ACF décroît très lentement)", "Trous dans la série rendant le calcul incorrect sans resampling"]
+    },
+
+    {
+      "id": "q_033",
+      "difficulty": "complex",
+      "category": "monitoring_temps_reel",
+      "question": "Pour les 6 dernières heures, génère un rapport de surveillance pour toutes les gateways du projet 'M3-GC03 TIS France' : nombre de mesures reçues, valeur min/max d'AccelerationZ, flag si aucune mesure reçue depuis plus de 30 minutes.",
+      "agents_required": ["SQL", "ANALYSIS", "VIZ"],
+      "routing": "SQL→ANALYSIS→VIZ",
+      "sql_task": "JOIN mesures, gateways, projets WHERE project_name = '...' AND timestamp >= NOW() - INTERVAL '6 hours', GROUP BY gateway_name: COUNT(*), MIN(value), MAX(value), MAX(timestamp)",
+      "analysis_task": "Flag silence = (NOW() - MAX(timestamp)) > 30 min, calcul de l'uptime = N_mesures_reçues / N_mesures_attendues",
+      "viz_task": "Dashboard de monitoring : table résumé + bar chart du nombre de mesures par gateway avec indication SILENCE en rouge",
+      "expected_output": "Tableau de bord de santé des capteurs : statut online/offline, min/max AccelerationZ, count",
+      "edge_cases": ["Gateway complètement muette (0 mesures) — doit apparaître dans le rapport", "Déphasage entre la fréquence déclarée et les mesures réelles"]
+    },
+
+    {
+      "id": "q_034",
+      "difficulty": "complex",
+      "category": "analyse_impact",
+      "question": "Pour la gateway 'Gateway-Tisséo Ligne A', détecte les pics d'AccelerationZ supérieurs à mean + 3*std et calcule la durée de retour à la normale (temps pour repasser sous mean + 1*std). Affiche une distribution des durées de retour.",
+      "agents_required": ["SQL", "ANALYSIS", "VIZ"],
+      "routing": "SQL→ANALYSIS→VIZ",
+      "sql_task": "SELECT timestamp, value FROM mesures WHERE ... ORDER BY timestamp",
+      "analysis_task": "Identification des séquences d'événements (entrée au-dessus de mean+3std, sortie en dessous de mean+std), calcul de la durée de chaque séquence",
+      "viz_task": "Histogramme des durées de retour (en minutes ou secondes), axe X = durée, axe Y = fréquence, annotation de la médiane",
+      "expected_output": "Histogramme des durées post-événement avec statistiques (médiane, p95) annotées",
+      "edge_cases": ["Pic non suivi de retour à la normale avant fin de la fenêtre (événement tronqué)", "Aucun pic détecté (histogramme vide)"]
+    },
+
+    {
+      "id": "q_035",
+      "difficulty": "complex",
+      "category": "multi_unite",
+      "question": "Pour la gateway 'Gateway-Tisséo Ligne A', génère un rapport statistique complet sur les 30 derniers jours pour toutes les 6 variables (AccelerationZ, VarianceX, VarianceY, MagnitudeX, MagnitudeY, MagnitudeZ). Affiche un tableau de statistiques + un bar chart des coefficients de variation.",
+      "agents_required": ["SQL", "ANALYSIS", "VIZ"],
+      "routing": "SQL→ANALYSIS→VIZ",
+      "sql_task": "SELECT variable_name, COUNT(*), AVG(value), STDDEV(value), MIN(value), MAX(value), PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY value) FROM mesures WHERE gateway_name = '...' AND timestamp >= NOW() - INTERVAL '30 days' GROUP BY variable_name",
+      "analysis_task": "Coefficient de variation = std/mean par variable, classement par variabilité relative",
+      "viz_task": "Bar chart du CV par variable (ordre décroissant), annotation des valeurs, code couleur (vert = stable, rouge = variable)",
+      "expected_output": "Tableau descriptif 6 variables + bar chart coefficient de variation",
+      "edge_cases": ["Mean proche de zéro rendant le CV instable ou infini (VarianceX/Y)", "Variables avec des ordres de grandeur très différents (m/s² vs µT)"]
+    },
+
+    {
+      "id": "q_036",
+      "difficulty": "complex",
+      "category": "change_point",
+      "question": "Détecte les ruptures de tendance (changepoints) dans la série AccelerationZ de la gateway 'Gateway-Tisséo Ligne A' sur les 30 derniers jours. Affiche la série avec les changepoints annotés verticalement.",
+      "agents_required": ["SQL", "ANALYSIS", "VIZ"],
+      "routing": "SQL→ANALYSIS→VIZ",
+      "sql_task": "SELECT timestamp, value FROM mesures WHERE ... ORDER BY timestamp",
+      "analysis_task": "Algorithme de détection de ruptures (ex: ruptures.Pelt, ruptures.Binseg, ou méthode CUSUM), extraction des timestamps des ruptures",
+      "viz_task": "Line chart avec lignes verticales pointillées aux changepoints, annotation de la date/heure de chaque rupture",
+      "expected_output": "Série temporelle avec ruptures structurelles annotées",
+      "edge_cases": ["Trop de ruptures détectées si le paramètre de sensibilité est mal réglé", "Série sans rupture réelle (capteur stable)"]
+    },
+
+    {
+      "id": "q_037",
+      "difficulty": "complex",
+      "category": "rapport_client",
+      "question": "Pour le client 'LIGAM', génère un résumé exécutif des 30 derniers jours : nombre total de mesures, gateways actives, variables surveillées, taux de complétude global, valeur max d'AccelerationZ observée et sa date/heure. Formate en tableau lisible.",
+      "agents_required": ["SQL", "ANALYSIS"],
+      "routing": "SQL→ANALYSIS",
+      "sql_task": "JOIN mesures, gateways, projets WHERE projets.client_company = 'LIGAM' AND timestamp >= NOW() - INTERVAL '30 days': COUNT(*), COUNT(DISTINCT gateway_name), COUNT(DISTINCT variable_name), MAX(value) WHERE variable_name = 'AccelerationZ'",
+      "analysis_task": "Calcul taux de complétude global, formatage du résumé en structure tabulaire",
+      "viz_task": "Aucune visualisation — sortie tabulaire structurée uniquement",
+      "expected_output": "Dictionnaire ou DataFrame avec KPIs : nb_mesures, nb_gateways_actives, variables_surveillées, taux_complétude, max_acceleration, timestamp_max",
+      "edge_cases": ["Client avec plusieurs projets de types différents (agrégation cross-projet)", "Taux de complétude impossible à calculer si fréquence théorique inconnue"]
+    },
+
+    {
+      "id": "q_038",
+      "difficulty": "complex",
+      "category": "cross_correlation",
+      "question": "Calcule la cross-corrélation entre AccelerationZ et MagnitudeZ pour la gateway 'Gateway-Tisséo Ligne A' sur les 14 derniers jours. Affiche la fonction de cross-corrélation avec le lag optimal identifié.",
+      "agents_required": ["SQL", "ANALYSIS", "VIZ"],
+      "routing": "SQL→ANALYSIS→VIZ",
+      "sql_task": "SELECT timestamp, variable_name, value FROM mesures WHERE variable_name IN ('AccelerationZ','MagnitudeZ') AND timestamp >= NOW() - INTERVAL '14 days' ORDER BY timestamp",
+      "analysis_task": "Pivot et alignement temporel, calcul cross-corrélation via np.correlate ou scipy.signal.correlate, normalisation, identification du lag au maximum",
+      "viz_task": "Graphique de la cross-corrélation en fonction du lag (positif et négatif), annotation du lag optimal et de la valeur maximale de corrélation",
+      "expected_output": "Courbe de cross-corrélation [-N, +N] lags avec lag optimal annoté",
+      "edge_cases": ["Séries à fréquences différentes nécessitant un alignement", "Absence de corrélation significative (pic plat)"]
+    },
+
+    {
+      "id": "q_039",
+      "difficulty": "complex",
+      "category": "full_pipeline",
+      "question": "Pour la gateway 'Gateway-Tisséo Ligne A', effectue une analyse complète des 30 derniers jours : (1) extraction et nettoyage des données AccelerationZ, (2) détection des anomalies z-score, (3) forecasting 24h, (4) dashboard final combinant série historique + anomalies + prévision. Tout en un seul appel orchestré.",
+      "agents_required": ["SQL", "ANALYSIS", "VIZ"],
+      "routing": "SQL→ANALYSIS→VIZ",
+      "sql_task": "SELECT timestamp AT TIME ZONE 'Europe/Paris', value FROM mesures WHERE gateway_name = '...' AND variable_name = 'AccelerationZ' AND timestamp >= NOW() - INTERVAL '30 days' ORDER BY timestamp",
+      "analysis_task": "Pipeline : nettoyage NaN, z-score (|z|>3), forecasting 24h avec IC 95%",
+      "viz_task": "Graphique unique : historique (bleu) + anomalies (rouge scatter) + prédiction (pointillé vert) + bande IC (vert semi-transparent) + ligne de seuil alerte",
+      "expected_output": "Visualisation complète tout-en-un : analyse + prévision + anomalies sur un seul graphique",
+      "edge_cases": ["Trop d'anomalies rendant le graphique illisible (clustering)", "Prédiction contradictoire avec le niveau de signal récent"]
+    },
+
+    {
+      "id": "q_040",
+      "difficulty": "complex",
+      "category": "full_pipeline_multi_gateway",
+      "question": "Pour toutes les gateways du projet 'M3-GC03 TIS France', génère un rapport automatisé de surveillance : détecte les anomalies critiques (z > 3) des dernières 24h, forecaste les 6 prochaines heures pour chaque gateway, et produit un dashboard résumé avec un subplot par gateway (série + anomalies + prévision). Signale en rouge les gateways à risque élevé.",
+      "agents_required": ["SQL", "ANALYSIS", "VIZ"],
+      "routing": "SQL→ANALYSIS→VIZ (parallélisé par gateway via LangGraph map-reduce)",
+      "sql_task": "JOIN mesures, gateways, projets WHERE project_name = 'M3-GC03 TIS France' AND variable_name = 'AccelerationZ' AND timestamp >= NOW() - INTERVAL '24 hours' + requête séparée pour les 7 jours d'historique par gateway pour le forecasting",
+      "analysis_task": "Map-reduce LangGraph : traitement parallèle par gateway, z-score + forecasting 6h, agrégation des résultats par criticité",
+      "viz_task": "Dashboard N_gateways subplots (grille adaptative), titre rouge si z_max > 3, prédiction visible sur chaque panneau, légende commune",
+      "expected_output": "Dashboard multi-gateway : un panneau par capteur avec statut de risque visuel intégré, rapport textuel de synthèse",
+      "edge_cases": ["Nombre variable de gateways (grille adaptative)", "Une gateway muette depuis > 24h (panneau avec message NO DATA)", "Résultats LangGraph partiels si un nœud échoue (gestion graceful degradation)"]
+    }
+
+  ]
+}
